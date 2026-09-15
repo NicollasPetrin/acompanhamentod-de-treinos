@@ -42,11 +42,17 @@ function Protegida({ children }: { children: JSX.Element }) {
   return children;
 }
 
-/** Quem já está logado não precisa ver landing/login. */
+/**
+ * Quem já está logado não precisa ver landing/login — exceto quando está
+ * adicionando uma segunda conta ao aparelho (treino em dupla).
+ */
 function Publica({ children }: { children: JSX.Element }) {
   const { autenticado, carregando } = useAuth();
+  const local = useLocation();
+  const adicionandoConta = new URLSearchParams(local.search).get('adicionar') === '1';
+
   if (carregando) return <Carregando />;
-  if (autenticado) return <Navigate to="/app" replace />;
+  if (autenticado && !adicionandoConta) return <Navigate to="/app" replace />;
   return children;
 }
 

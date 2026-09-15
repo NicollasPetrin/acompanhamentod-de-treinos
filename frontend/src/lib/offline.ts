@@ -66,21 +66,24 @@ export interface TreinoParaSincronizar {
   }>;
 }
 
-const CHAVE_RASCUNHO = 'treinos.rascunho';
-const CHAVE_FILA = 'treinos.fila-sincronizacao';
+// As chaves levam o id do usuário: no "treino em dupla" duas pessoas usam o
+// mesmo aparelho e cada uma tem seu próprio rascunho e sua própria fila.
+const chaveRascunho = (userId: string) => `treinos.rascunho:${userId}`;
+const chaveFila = (userId: string) => `treinos.fila:${userId}`;
 
-export const lerRascunho = () => get<SessaoTreino>(CHAVE_RASCUNHO);
-export const salvarRascunho = (sessao: SessaoTreino) => set(CHAVE_RASCUNHO, sessao);
-export const apagarRascunho = () => del(CHAVE_RASCUNHO);
+export const lerRascunho = (userId: string) => get<SessaoTreino>(chaveRascunho(userId));
+export const salvarRascunho = (userId: string, sessao: SessaoTreino) => set(chaveRascunho(userId), sessao);
+export const apagarRascunho = (userId: string) => del(chaveRascunho(userId));
 
-export const lerFila = async () => (await get<TreinoParaSincronizar[]>(CHAVE_FILA)) ?? [];
+export const lerFila = async (userId: string) =>
+  (await get<TreinoParaSincronizar[]>(chaveFila(userId))) ?? [];
 
 /** Coloca um treino finalizado na fila de sincronização. */
-export async function enfileirarTreino(treino: TreinoParaSincronizar) {
-  const fila = await lerFila();
+export async function enfileirarTreino(userId: string, treino: TreinoParaSincronizar) {
+  const fila = await lerFila(userId);
   const semDuplicata = fila.filter((t) => t.clientId !== treino.clientId);
   semDuplicata.push(treino);
-  await set(CHAVE_FILA, semDuplicata);
+  await set(chaveFila(userId), semDuplicata);
   notificarFila(semDuplicata.length);
 }
 
@@ -88,8 +91,8 @@ export async function enfileirarTreino(treino: TreinoParaSincronizar) {
  * Envia tudo o que está na fila. Como o endpoint é idempotente por clientId,
  * reenviar não duplica nada — então é seguro chamar sempre que a conexão volta.
  */
-export async function sincronizarPendentes(): Promise<{ enviados: number; restantes: number }> {
-  const fila = await lerFila();
+export async function sincronizarPendentes(userId: string): Promise<{ enviados: number; restantes: number }> {
+  const fila = await lerFila(userId);
   if (fila.length === 0) return { enviados: 0, restantes: 0 };
 
   try {
@@ -99,7 +102,7 @@ export async function sincronizarPendentes(): Promise<{ enviados: number; restan
     );
     const sincronizados = new Set(resposta.resultados.map((r) => r.clientId));
     const restantes = fila.filter((t) => !sincronizados.has(t.clientId));
-    await set(CHAVE_FILA, restantes);
+    await set(chaveFila(userId), restantes);
     notificarFila(restantes.length);
     return { enviados: sincronizados.size, restantes: restantes.length };
   } catch {
@@ -113,16 +116,17 @@ const ouvintesFila = new Set<OuvinteFila>();
 const notificarFila = (quantidade: number) => ouvintesFila.forEach((fn) => fn(quantidade));
 
 /** Estado da conexão + quantidade de treinos aguardando sincronização. */
-export function useStatusOffline() {
+export function useStatusOffline(userId: string | undefined) {
   const [online, setOnline] = useState(() => navigator.onLine);
   const [pendentes, setPendentes] = useState(0);
 
   useEffect(() => {
-    void lerFila().then((fila) => setPendentes(fila.length));
+    if (!userId) return;
+    void lerFila(userId).then((fila) => setPendentes(fila.length));
 
     const aoConectar = () => {
       setOnline(true);
-      void sincronizarPendentes();
+      void sincronizarPendentes(userId);
     };
     const aoDesconectar = () => setOnline(false);
 
@@ -135,9 +139,23 @@ export function useStatusOffline() {
       window.removeEventListener('online', aoConectar);
       window.removeEventListener('offline', aoDesconectar);
     };
-  }, []);
+  }, [userId]);
 
   return { online, pendentes };
+}
+
+/**
+ * Apaga o cache HTTP das respostas da API (service worker).
+ *
+ * É chamado ao entrar, sair e trocar de conta: sem isso, no "treino em dupla"
+ * uma pessoa poderia ver, offline, os dados que ficaram em cache da outra.
+ */
+export async function limparCacheDaApi() {
+  try {
+    if ('caches' in window) await caches.delete('api-treinos');
+  } catch {
+    /* navegador sem Cache API: nada a limpar */
+  }
 }
 
 export const idLocal = (prefixo = 'local') =>

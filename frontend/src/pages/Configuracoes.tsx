@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Bell, Camera, Download, LogOut, Moon, Palette, Ruler, Save, Sun, Trash2, Upload, User, KeyRound, FileJson,
+  Bell, Camera, Download, LogOut, Moon, Palette, Ruler, Save, Sun, Trash2, Upload, User, Users, KeyRound, FileJson,
 } from 'lucide-react';
 import { api, apiDelete, apiPatch, apiPost, lerSessao } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -13,7 +13,7 @@ import { AreaTexto, Botao, Campo, Cartao, Modal, Selecao, TituloSecao } from '..
 import { useAvisos } from '../components/Notificacoes';
 
 export default function Configuracoes() {
-  const { usuario, atualizarUsuario, aplicarTema, sair } = useAuth();
+  const { usuario, contas, trocarPara, atualizarUsuario, aplicarTema, sair } = useAuth();
   const navegar = useNavigate();
   const queryClient = useQueryClient();
   const { sucesso, erro: avisarErro, avisar } = useAvisos();
@@ -377,6 +377,48 @@ export default function Configuracoes() {
           </Botao>
           <Botao variante="secundario" larguraTotal icone={<Upload size={18} />} onClick={() => setImportando(true)}>
             Importar do Strong ou Hevy
+          </Botao>
+        </Cartao>
+      </section>
+
+      {/* Treino em dupla ---------------------------------------------------- */}
+      <section>
+        <TituloSecao
+          titulo="Treino em dupla"
+          descricao="Duas pessoas no mesmo aparelho, cada uma registrando na própria conta"
+        />
+        <Cartao className="flex flex-col gap-2">
+          {contas.map((conta) => (
+            <button
+              key={conta.id}
+              onClick={() => conta.id !== usuario.id && trocarPara(conta.id)}
+              className={`flex items-center gap-3 rounded-xl border px-3 py-3 text-left ${
+                conta.id === usuario.id ? 'border-primaria bg-primaria/10' : 'border-borda hover:bg-superficie-2'
+              }`}
+            >
+              <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-superficie-2 font-semibold">
+                {conta.photoUrl ? (
+                  <img src={conta.photoUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  conta.name.charAt(0).toUpperCase()
+                )}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium">{conta.name}</span>
+                <span className="block truncate text-sm text-texto-suave">
+                  {conta.id === usuario.id ? 'conta atual' : conta.email}
+                </span>
+              </span>
+            </button>
+          ))}
+
+          <Botao
+            variante="secundario"
+            larguraTotal
+            icone={<Users size={18} />}
+            onClick={() => navegar('/entrar?adicionar=1')}
+          >
+            Adicionar outra conta
           </Botao>
         </Cartao>
       </section>

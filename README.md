@@ -79,6 +79,9 @@ escuro por padrão e funcionamento **offline**.
 - Fotos de progresso com comparação lado a lado
 - Metas com barra de progresso automática (carga, 1RM, peso corporal, frequência…)
 - Lembretes de treino por notificação nos dias e horário configurados
+- **Treino em dupla**: duas contas conectadas no mesmo aparelho, com troca
+  rápida durante o treino — cada pessoa registra na própria conta e mantém o
+  próprio rascunho
 - Exportação em CSV/JSON e importação do **Strong** e do **Hevy**
 - Calculadoras de 1RM (Epley/Brzycki, com tabela de percentuais), de anilhas
   (quanto colocar de cada lado da barra) e conversor kg ↔ lb
@@ -275,6 +278,9 @@ e os erros seguem sempre o mesmo formato:
    offline substitui o rascunho que ficou no servidor.
 6. Os recordes pessoais são detectados no aparelho (mesma fórmula do backend),
    então o aviso de PR aparece na hora, com ou sem internet.
+7. Rascunhos e fila de sincronização são guardados **por usuário**, e o cache
+   das respostas da API é apagado ao entrar, sair e trocar de conta — no treino
+   em dupla ninguém vê os dados da outra pessoa, nem offline.
 
 Para instalar no celular: abra o site no navegador e escolha
 *"Adicionar à tela de início"*.
@@ -327,6 +333,6 @@ As mesmas funções existem no frontend (`src/lib/calculos.ts`) para o modo offl
   (há um dicionário com os nomes mais comuns em inglês).
 - **Uploads** ficam em disco (`backend/uploads`). Para produção em várias
   instâncias, troque por um storage de objetos (S3 ou equivalente).
-- **Treino em dupla**: o app permite trocar de conta rapidamente no mesmo
-  aparelho, mas não há uma tela dedicada para dois usuários registrarem
-  simultaneamente na mesma sessão.
+- **Treino em dupla**: as duas pessoas alternam entre as contas no mesmo
+  aparelho (cada uma com seu treino e seu rascunho), mas as duas telas não
+  ficam visíveis ao mesmo tempo — é uma troca, não uma tela dividida.

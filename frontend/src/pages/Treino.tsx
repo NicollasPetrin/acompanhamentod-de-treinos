@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  Check, ChevronDown, ChevronUp, Flag, MessageSquarePlus, MoreVertical, Plus, Timer, Trash2, Trophy, X,
+  Check, ChevronDown, ChevronUp, Flag, MessageSquarePlus, MoreVertical, Plus, Timer, Trash2, Trophy, Users, X,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useSessaoTreino } from '../lib/sessaoTreino';
@@ -24,7 +24,7 @@ export default function Treino() {
   const diaId = parametros.get('dia');
   const navegar = useNavigate();
   const queryClient = useQueryClient();
-  const { usuario } = useAuth();
+  const { usuario, contas, trocarPara } = useAuth();
   const unidade = useUnidade();
   const { sucesso, avisar, erro: avisarErro } = useAvisos();
 
@@ -33,7 +33,7 @@ export default function Treino() {
     atualizarSerie, alternarConclusao, adicionarSerie, removerSerie,
     adicionarExercicio, removerExercicio, definirNotasExercicio, definirDadosDoTreino,
     finalizar, descartar,
-  } = useSessaoTreino({ treinoId: id, diaId });
+  } = useSessaoTreino({ userId: usuario?.id ?? '', treinoId: id, diaId });
 
   const [descansoSeg, setDescansoSeg] = useState<number | null>(null);
   const [seletorAberto, setSeletorAberto] = useState(false);
@@ -42,6 +42,7 @@ export default function Treino() {
   const [finalizando, setFinalizando] = useState(false);
   const [notaEmEdicao, setNotaEmEdicao] = useState<string | null>(null);
   const [recolhidos, setRecolhidos] = useState<Record<string, boolean>>({});
+  const [duplaAberta, setDuplaAberta] = useState(false);
 
   const decorrido = useTempoDecorrido(sessao?.startedAt ?? new Date().toISOString());
 
@@ -120,7 +121,7 @@ export default function Treino() {
 
           <div className="min-w-0 flex-1">
             <h1 className="truncate font-semibold leading-tight">{sessao.name}</h1>
-            <p className="flex items-center gap-1.5 whitespace-nowrap text-xs tabular-nums text-texto-suave">
+            <p className="flex items-center gap-1.5 overflow-hidden text-ellipsis whitespace-nowrap text-xs tabular-nums text-texto-suave">
               <Timer size={13} aria-hidden />
               {formatarDuracao(decorrido)}
               <span aria-hidden>·</span>
@@ -129,6 +130,14 @@ export default function Treino() {
               {formatarVolume(totais.volume, unidade)}
             </p>
           </div>
+
+          <button
+            onClick={() => setDuplaAberta(true)}
+            className="rounded-lg p-2 text-texto-suave hover:bg-superficie-2 hover:text-texto"
+            aria-label="Treino em dupla: trocar de conta"
+          >
+            <Users size={20} />
+          </button>
 
           <Botao tamanho="sm" onClick={() => setFinalizarAberto(true)} icone={<Flag size={16} />}>
             Finalizar
@@ -346,6 +355,50 @@ export default function Treino() {
         </div>
       </Modal>
 
+      {/* Treino em dupla: cada pessoa registra na própria conta, no mesmo aparelho */}
+      <Modal aberto={duplaAberta} aoFechar={() => setDuplaAberta(false)} titulo="Treino em dupla">
+        <p className="mb-3 text-sm text-texto-suave">
+          Treinando acompanhado? Troque de conta sem perder o treino em andamento — cada pessoa registra
+          as próprias séries e o rascunho de cada uma fica salvo neste aparelho.
+        </p>
+
+        <div className="flex flex-col gap-1.5">
+          {contas.map((conta) => (
+            <button
+              key={conta.id}
+              onClick={() => (conta.id === usuario?.id ? setDuplaAberta(false) : trocarPara(conta.id))}
+              className={clsx(
+                'flex items-center gap-3 rounded-xl border px-3 py-3 text-left',
+                conta.id === usuario?.id ? 'border-primaria bg-primaria/10' : 'border-borda hover:bg-superficie-2',
+              )}
+            >
+              <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-superficie-2 font-semibold">
+                {conta.photoUrl ? (
+                  <img src={conta.photoUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  conta.name.charAt(0).toUpperCase()
+                )}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium">{conta.name}</span>
+                <span className="block truncate text-sm text-texto-suave">{conta.email}</span>
+              </span>
+              {conta.id === usuario?.id && <Check size={18} className="text-primaria" aria-label="Conta atual" />}
+            </button>
+          ))}
+        </div>
+
+        <Botao
+          variante="secundario"
+          larguraTotal
+          className="mt-3"
+          icone={<Users size={18} />}
+          onClick={() => navegar('/entrar?adicionar=1')}
+        >
+          Entrar com outra conta
+        </Botao>
+      </Modal>
+
       <ConfirmarAcao
         aberto={descartarAberto}
         titulo="Descartar treino?"
@@ -469,9 +522,9 @@ function LinhaDaSerie({ serie, numero, unidade, aoMudar, aoConcluir, aoRemover }
             onChange={(e) => aoMudar({ rpe: e.target.value ? Number(e.target.value) : null })}
           >
             <option value="">Não informar</option>
-            {[6, 7, 8, 9, 10].map((n) => (
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
               <option key={n} value={n}>
-                {n}
+                {n} — {n <= 3 ? 'muito leve' : n <= 5 ? 'leve' : n <= 7 ? 'moderado' : n <= 9 ? 'perto da falha' : 'falha'}
               </option>
             ))}
           </Selecao>

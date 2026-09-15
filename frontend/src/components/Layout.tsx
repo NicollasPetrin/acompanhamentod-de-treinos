@@ -28,16 +28,17 @@ const SECUNDARIOS = [
 ];
 
 /** Avisa que o app está offline e quantos treinos aguardam sincronização. */
-function FaixaOffline() {
-  const { online, pendentes } = useStatusOffline();
+function FaixaOffline({ userId }: { userId: string | undefined }) {
+  const { online, pendentes } = useStatusOffline(userId);
   const { sucesso } = useAvisos();
   const [sincronizando, setSincronizando] = useState(false);
 
   if (online && pendentes === 0) return null;
 
   const sincronizar = async () => {
+    if (!userId) return;
     setSincronizando(true);
-    const { enviados } = await sincronizarPendentes();
+    const { enviados } = await sincronizarPendentes(userId);
     setSincronizando(false);
     if (enviados > 0) sucesso(`${enviados} treino(s) sincronizado(s)`);
   };
@@ -147,7 +148,7 @@ export default function Layout() {
       </aside>
 
       <div className="flex min-h-screen flex-1 flex-col">
-        <FaixaOffline />
+        <FaixaOffline userId={usuario?.id} />
 
         <main className={clsx('mx-auto w-full max-w-3xl flex-1 px-4 py-4', !emTreino && 'pb-28 lg:pb-8')}>
           <Outlet />

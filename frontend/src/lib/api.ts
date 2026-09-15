@@ -1,6 +1,8 @@
 import type { Sessao } from './tipos';
 
 const CHAVE_SESSAO = 'treinos.sessao';
+/** Contas guardadas no aparelho — base do "treino em dupla". */
+const CHAVE_CONTAS = 'treinos.contas';
 
 /** Erro vindo da API, já com a mensagem pronta para exibir ao usuário. */
 export class ErroApi extends Error {
@@ -32,10 +34,41 @@ export const lerSessao = (): Sessao | null => {
   }
 };
 
-export const salvarSessao = (sessao: Sessao | null) => {
-  if (sessao) localStorage.setItem(CHAVE_SESSAO, JSON.stringify(sessao));
-  else localStorage.removeItem(CHAVE_SESSAO);
+/** Todas as contas conectadas neste aparelho (a ativa é a primeira da lista). */
+export const listarContas = (): Sessao[] => {
+  try {
+    const bruto = localStorage.getItem(CHAVE_CONTAS);
+    return bruto ? (JSON.parse(bruto) as Sessao[]) : [];
+  } catch {
+    return [];
+  }
+};
+
+const guardarContas = (contas: Sessao[]) =>
+  localStorage.setItem(CHAVE_CONTAS, JSON.stringify(contas));
+
+export const salvarSessao = (sessao: Sessao | null, removerConta = false) => {
+  const atual = lerSessao();
+
+  if (sessao) {
+    localStorage.setItem(CHAVE_SESSAO, JSON.stringify(sessao));
+    // Mantém a lista de contas atualizada, sem duplicar o mesmo usuário
+    guardarContas([sessao, ...listarContas().filter((c) => c.usuario.id !== sessao.usuario.id)]);
+  } else {
+    localStorage.removeItem(CHAVE_SESSAO);
+    if (removerConta && atual) {
+      guardarContas(listarContas().filter((c) => c.usuario.id !== atual.usuario.id));
+    }
+  }
+
   ouvintes.forEach((fn) => fn(sessao));
+};
+
+/** Troca para outra conta já conectada no aparelho (treino em dupla). */
+export const trocarConta = (userId: string): Sessao | null => {
+  const conta = listarContas().find((c) => c.usuario.id === userId);
+  if (conta) salvarSessao(conta);
+  return conta ?? null;
 };
 
 type Ouvinte = (sessao: Sessao | null) => void;

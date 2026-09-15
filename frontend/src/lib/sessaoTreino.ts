@@ -184,13 +184,15 @@ function resumoLocal(sessao: SessaoTreino, finishedAt: Date): ResumoTreino {
 }
 
 interface Opcoes {
+  /** Usuário dono do treino — separa os rascunhos no treino em dupla */
+  userId: string;
   /** Id do treino já existente (retomar) */
   treinoId?: string;
   /** Dia da rotina para iniciar um treino novo */
   diaId?: string | null;
 }
 
-export function useSessaoTreino({ treinoId, diaId }: Opcoes) {
+export function useSessaoTreino({ userId, treinoId, diaId }: Opcoes) {
   const [sessao, definirSessao] = useState<SessaoTreino | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -205,10 +207,10 @@ export function useSessaoTreino({ treinoId, diaId }: Opcoes) {
       if (!atual) return atual;
       const nova = recalcularPrs(mutador(atual));
       sessaoRef.current = nova;
-      void salvarRascunho(nova);
+      void salvarRascunho(userId, nova);
       return nova;
     });
-  }, []);
+  }, [userId]);
 
   /** Chama a API sem travar a interface; falha de rede vira "sincronizar depois". */
   const noServidor = useCallback(async <T,>(fn: () => Promise<T>): Promise<T | null> => {
@@ -231,7 +233,7 @@ export function useSessaoTreino({ treinoId, diaId }: Opcoes) {
     (async () => {
       setCarregando(true);
       try {
-        const [rascunho, melhores] = await Promise.all([lerRascunho(), carregarMelhores()]);
+        const [rascunho, melhores] = await Promise.all([lerRascunho(userId), carregarMelhores()]);
 
         // 1) Rascunho local tem prioridade — é o estado mais recente do aparelho
         if (rascunho && (!treinoId || rascunho.id === treinoId) && (!diaId || rascunho.routineDayId === diaId)) {
@@ -249,7 +251,7 @@ export function useSessaoTreino({ treinoId, diaId }: Opcoes) {
           if (!ativo) return;
           sessaoRef.current = convertida;
           definirSessao(recalcularPrs(convertida));
-          await salvarRascunho(convertida);
+          await salvarRascunho(userId, convertida);
           return;
         }
 
@@ -268,7 +270,7 @@ export function useSessaoTreino({ treinoId, diaId }: Opcoes) {
           if (!ativo) return;
           sessaoRef.current = convertida;
           definirSessao(recalcularPrs(convertida));
-          await salvarRascunho(convertida);
+          await salvarRascunho(userId, convertida);
           return;
         }
 
@@ -278,7 +280,7 @@ export function useSessaoTreino({ treinoId, diaId }: Opcoes) {
         if (!ativo) return;
         sessaoRef.current = nova;
         definirSessao(nova);
-        await salvarRascunho(nova);
+        await salvarRascunho(userId, nova);
       } catch (falha) {
         if (ativo) setErro(falha instanceof ErroApi ? falha.message : 'Não foi possível iniciar o treino');
       } finally {
@@ -289,7 +291,7 @@ export function useSessaoTreino({ treinoId, diaId }: Opcoes) {
     return () => {
       ativo = false;
     };
-  }, [treinoId, diaId]);
+  }, [userId, treinoId, diaId]);
 
   /* ----------------------------------------------------------------- Ações */
 
@@ -505,28 +507,28 @@ export function useSessaoTreino({ treinoId, diaId }: Opcoes) {
           notes: atual.notes || null,
           rpe: atual.rpe,
         });
-        await apagarRascunho();
+        await apagarRascunho(userId);
         return { resumo, offline: false };
       } catch (falha) {
         if (!(falha instanceof ErroApi && (falha.offline || falha.status >= 500))) throw falha;
       }
     }
 
-    await enfileirarTreino(montarPayload(atual, fim));
-    const { enviados } = await sincronizarPendentes();
-    await apagarRascunho();
+    await enfileirarTreino(userId, montarPayload(atual, fim));
+    const { enviados } = await sincronizarPendentes(userId);
+    await apagarRascunho(userId);
     return { resumo: resumoLocal(atual, fim), offline: enviados === 0 };
-  }, []);
+  }, [userId]);
 
   const descartar = useCallback(async () => {
     const atual = sessaoRef.current;
-    await apagarRascunho();
+    await apagarRascunho(userId);
     if (atual && !atual.local && !ehLocal(atual.id)) {
       await apiPost(`/treinos/${atual.id}/descartar`).catch(() => undefined);
     }
     sessaoRef.current = null;
     definirSessao(null);
-  }, []);
+  }, [userId]);
 
   return {
     sessao,

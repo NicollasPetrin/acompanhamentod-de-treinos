@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Dumbbell, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { ErroApi } from '../lib/api';
@@ -9,6 +9,9 @@ export default function Entrar() {
   const { entrar } = useAuth();
   const navegar = useNavigate();
   const local = useLocation() as { state?: { de?: string } };
+  const [parametros] = useSearchParams();
+  // Vindo do "treino em dupla": a conta atual continua salva no aparelho
+  const adicionandoConta = parametros.get('adicionar') === '1';
 
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -39,8 +42,12 @@ export default function Entrar() {
           Treinos
         </Link>
 
-        <h1 className="text-2xl font-bold">Bem-vindo de volta</h1>
-        <p className="mt-1 text-texto-suave">Entre para continuar seus treinos.</p>
+        <h1 className="text-2xl font-bold">{adicionandoConta ? 'Entrar com outra conta' : 'Bem-vindo de volta'}</h1>
+        <p className="mt-1 text-texto-suave">
+          {adicionandoConta
+            ? 'A conta atual continua salva neste aparelho — dá para alternar entre as duas durante o treino.'
+            : 'Entre para continuar seus treinos.'}
+        </p>
 
         <form onSubmit={enviar} className="mt-6 flex flex-col gap-4" noValidate>
           <Campo
