@@ -682,9 +682,15 @@ workoutsRouter.post(
 
       for (const t of treinos) {
         const existente = await prisma.workout.findFirst({ where: { userId: uid, clientId: t.clientId } });
-        if (existente) {
+        if (existente?.status === 'concluido') {
+          // Já sincronizado antes: nada a fazer (idempotência)
           resultados.push({ clientId: t.clientId, workoutId: existente.id, status: 'ja_sincronizado' });
           continue;
+        }
+        if (existente) {
+          // O treino começou online (rascunho no servidor) e terminou offline:
+          // o rascunho é substituído pela versão finalizada que veio do aparelho.
+          await prisma.workout.delete({ where: { id: existente.id } });
         }
 
         // Só aceita exercícios visíveis para este usuário
@@ -742,7 +748,11 @@ workoutsRouter.post(
           await recalcularRecordes(uid, exerciseId);
         }
 
-        resultados.push({ clientId: t.clientId, workoutId: criado.id, status: 'criado' });
+        resultados.push({
+          clientId: t.clientId,
+          workoutId: criado.id,
+          status: existente ? 'atualizado' : 'criado',
+        });
       }
 
       const conquistas = await verificarConquistas(uid);

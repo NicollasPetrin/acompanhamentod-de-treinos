@@ -115,6 +115,9 @@ export async function metasComProgresso(userId: string, apenasAbertas = false) {
       completedAt = atualizada.completedAt;
     }
 
+    // Quem pediu só as metas abertas não deve receber a que acabou de fechar
+    if (apenasAbertas && completed) continue;
+
     resultado.push({
       id: meta.id,
       title: meta.title,

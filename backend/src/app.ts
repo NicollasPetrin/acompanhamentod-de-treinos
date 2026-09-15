@@ -34,10 +34,10 @@ export function createApp() {
   );
   app.use(
     cors({
-      origin: (origin, cb) => {
-        if (!origin || corsOrigins.includes(origin)) return cb(null, true);
-        cb(new Error('Origem não permitida pelo CORS'));
-      },
+      // Origem desconhecida apenas fica sem os cabeçalhos de CORS (o próprio
+      // navegador bloqueia). Responder com erro quebraria as requisições de
+      // mesma origem — caso de quando a API também serve o frontend.
+      origin: (origin, cb) => cb(null, !origin || corsOrigins.includes(origin)),
       credentials: true,
     }),
   );

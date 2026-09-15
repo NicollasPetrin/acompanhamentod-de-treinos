@@ -144,6 +144,38 @@ describe('registro de treino', () => {
     expect(depois.body[0].recordes.carga.value).toBe(80);
   });
 
+  it('substitui o rascunho do servidor quando o treino é finalizado offline', async () => {
+    // Treino começou online (rascunho no servidor) e terminou sem internet
+    const inicio = await request(app)
+      .post('/api/treinos/iniciar')
+      .set(auth(sessao))
+      .send({ name: 'Começou online', clientId: 'misto-1' });
+    expect(inicio.body.status).toBe('em_andamento');
+
+    const sincronizacao = await request(app)
+      .post('/api/treinos/sincronizar')
+      .set(auth(sessao))
+      .send({
+        treinos: [
+          {
+            clientId: 'misto-1',
+            name: 'Terminou offline',
+            startedAt: new Date(Date.now() - 3600_000).toISOString(),
+            finishedAt: new Date().toISOString(),
+            exercises: [{ exerciseId, order: 0, sets: [{ order: 0, weight: 60, reps: 10, completed: true }] }],
+          },
+        ],
+      });
+
+    expect(sincronizacao.body.resultados[0].status).toBe('atualizado');
+
+    // O rascunho sumiu e restou só o treino concluído
+    expect((await request(app).get('/api/treinos/em-andamento').set(auth(sessao))).body).toBeNull();
+    const historico = await request(app).get('/api/treinos').set(auth(sessao));
+    expect(historico.body.total).toBe(1);
+    expect(historico.body.itens[0].name).toBe('Terminou offline');
+  });
+
   it('sincroniza treinos offline sem duplicar (idempotência por clientId)', async () => {
     const treino = {
       clientId: 'offline-1',
