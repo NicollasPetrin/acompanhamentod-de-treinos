@@ -1,0 +1,38 @@
+# Dependências
+node_modules/
+.pnp/
+.pnp.js
+
+# Builds
+dist/
+build/
+*.tsbuildinfo
+
+# Banco de dados local (SQLite)
+*.db
+*.db-journal
+*.sqlite
+prisma/*.db
+
+# Variáveis de ambiente
+.env
+.env.local
+.env.*.local
+
+# Uploads de usuários
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Logs e caches
+*.log
+npm-debug.log*
+.cache/
+coverage/
+.vite/
+
+# Sistema operacional / editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
