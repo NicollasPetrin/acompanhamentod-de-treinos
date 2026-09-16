@@ -257,6 +257,19 @@ describe('autorização — cada usuário só acessa os próprios dados', () => 
     expect(biblioteca.body.itens).toHaveLength(0);
   });
 
+  it('trata filtros booleanos "false" da query corretamente', async () => {
+    await criarExercicio('Exercício global de teste');
+
+    // favoritos=false / meus=false não devem esconder a biblioteca global
+    const todos = await request(app)
+      .get('/api/exercicios?favoritos=false&meus=false')
+      .set(auth(alice));
+    expect(todos.body.itens.length).toBeGreaterThan(0);
+
+    const soFavoritos = await request(app).get('/api/exercicios?favoritos=true').set(auth(alice));
+    expect(soFavoritos.body.itens).toHaveLength(0);
+  });
+
   it('não deixa alterar medidas de outro usuário', async () => {
     const medida = await request(app).post('/api/medidas').set(auth(alice)).send({ weightKg: 80 });
     expect((await request(app).patch(`/api/medidas/${medida.body.id}`).set(auth(bob)).send({ weightKg: 60 })).status).toBe(404);

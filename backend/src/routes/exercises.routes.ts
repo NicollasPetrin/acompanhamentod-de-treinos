@@ -9,6 +9,7 @@ import { forbidden, notFound } from '../lib/errors';
 import { gerarSvgExercicio } from '../lib/exerciseImage';
 import { EQUIPAMENTOS, GRUPOS_MUSCULARES, TIPOS_EXERCICIO } from '../data/exercises';
 import { estimar1RM, arredondar, volumeTotal } from '../utils/calculations';
+import { booleanoDaQuery } from '../lib/zod';
 
 export const exercisesRouter = Router();
 
@@ -17,8 +18,8 @@ const listaSchema = z.object({
   grupo: z.string().optional(),
   equipamento: z.string().optional(),
   tipo: z.string().optional(),
-  favoritos: z.coerce.boolean().optional(),
-  meus: z.coerce.boolean().optional(),
+  favoritos: booleanoDaQuery.optional(),
+  meus: booleanoDaQuery.optional(),
   pagina: z.coerce.number().int().min(1).default(1),
   limite: z.coerce.number().int().min(1).max(200).default(50),
 });

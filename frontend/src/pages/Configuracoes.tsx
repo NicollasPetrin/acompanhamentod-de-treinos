@@ -7,6 +7,7 @@ import {
 import { api, apiDelete, apiPatch, apiPost, lerSessao } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { DIAS_SEMANA, NIVEIS, OBJETIVOS, SEXOS } from '../lib/constantes';
+import { paraNumero } from '../lib/formato';
 import { notificacoesSuportadas, pedirPermissaoNotificacoes } from '../lib/lembretes';
 import type { Usuario } from '../lib/tipos';
 import { AreaTexto, Botao, Campo, Cartao, Modal, Selecao, TituloSecao } from '../components/ui';
@@ -55,7 +56,7 @@ export default function Configuracoes() {
         birthDate: perfil.birthDate ? new Date(`${perfil.birthDate}T12:00:00`).toISOString() : null,
         sex: perfil.sex || null,
         heightCm: perfil.heightCm ? Number(perfil.heightCm) : null,
-        weightKg: perfil.weightKg ? Number(perfil.weightKg.replace(',', '.')) : null,
+        weightKg: perfil.weightKg ? paraNumero(perfil.weightKg) : null,
         goal: perfil.goal || null,
         level: perfil.level || null,
       }),
@@ -223,9 +224,8 @@ export default function Configuracoes() {
             />
             <Campo
               rotulo="Peso atual"
-              type="number"
+              type="text"
               inputMode="decimal"
-              step="0.1"
               sufixo="kg"
               value={perfil.weightKg}
               onChange={(e) => setPerfil((p) => ({ ...p, weightKg: e.target.value }))}

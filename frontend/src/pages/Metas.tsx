@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, Plus, Target, Trash2 } from 'lucide-react';
 import { apiDelete, apiGet, apiPost } from '../lib/api';
 import { TIPOS_META } from '../lib/constantes';
-import { formatarData, formatarNumero } from '../lib/formato';
+import { formatarData, formatarNumero, paraNumero } from '../lib/formato';
 import type { Exercicio, Meta } from '../lib/tipos';
 import { BarraProgresso, Botao, Campo, Cartao, Carregando, ConfirmarAcao, Distintivo, Modal, Selecao, TituloSecao, Vazio } from '../components/ui';
 import SeletorDeExercicio from '../components/SeletorDeExercicio';
@@ -36,8 +36,8 @@ export default function Metas() {
         title: nova.title.trim(),
         type: nova.type,
         exerciseId: nova.exercicio?.id ?? null,
-        targetValue: Number(nova.targetValue.replace(',', '.')),
-        startValue: nova.startValue ? Number(nova.startValue.replace(',', '.')) : null,
+        targetValue: paraNumero(nova.targetValue),
+        startValue: nova.startValue ? paraNumero(nova.startValue) : null,
         deadline: nova.deadline ? new Date(`${nova.deadline}T12:00:00`).toISOString() : null,
       }),
     onSuccess: async () => {
@@ -163,17 +163,15 @@ export default function Metas() {
           <div className="grid grid-cols-2 gap-3">
             <Campo
               rotulo={`Valor alvo (${configuracaoTipo.unidade})`}
-              type="number"
+              type="text"
               inputMode="decimal"
-              step="0.5"
               value={nova.targetValue}
               onChange={(e) => setNova((n) => ({ ...n, targetValue: e.target.value }))}
             />
             <Campo
               rotulo="Valor inicial"
-              type="number"
+              type="text"
               inputMode="decimal"
-              step="0.5"
               placeholder="opcional"
               value={nova.startValue}
               onChange={(e) => setNova((n) => ({ ...n, startValue: e.target.value }))}

@@ -7,6 +7,7 @@ import { getQuery, validate } from '../middleware/validate';
 import { serializeExercise } from '../lib/serialize';
 import { badRequest, notFound } from '../lib/errors';
 import { TEMPLATES, getTemplate } from '../data/templates';
+import { booleanoDaQuery } from '../lib/zod';
 
 export const routinesRouter = Router();
 
@@ -220,7 +221,7 @@ routinesRouter.use(requireAuth);
 /** GET /api/rotinas — lista as rotinas do usuário. */
 routinesRouter.get(
   '/',
-  validate(z.object({ arquivadas: z.coerce.boolean().optional() }), 'query'),
+  validate(z.object({ arquivadas: booleanoDaQuery.optional() }), 'query'),
   async (req, res, next) => {
     try {
       const { arquivadas } = getQuery<{ arquivadas?: boolean }>(req);

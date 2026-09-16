@@ -74,6 +74,19 @@ export const MESES = [
 
 export const primeiraMaiuscula = (texto: string) => texto.charAt(0).toUpperCase() + texto.slice(1);
 
+/**
+ * Lê um número digitado em português: aceita vírgula ("42,5") e ponto ("42.5").
+ * Campos de peso usam type="text" + inputMode="decimal" justamente porque
+ * input[type=number] recusa a vírgula em boa parte dos navegadores.
+ */
+export const paraNumero = (texto: string | number | null | undefined): number => {
+  if (typeof texto === 'number') return Number.isFinite(texto) ? texto : 0;
+  if (!texto) return 0;
+  const limpo = String(texto).trim().replace(/\s/g, '').replace(',', '.');
+  const valor = Number(limpo);
+  return Number.isFinite(valor) ? valor : 0;
+};
+
 /** Plural simples: 3 "treino" → "3 treinos". */
 export const plural = (quantidade: number, singular: string, pluralForma?: string) =>
   `${formatarNumero(quantidade, 0)} ${quantidade === 1 ? singular : pluralForma ?? `${singular}s`}`;

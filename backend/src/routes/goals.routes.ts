@@ -5,6 +5,7 @@ import { requireAuth, userId } from '../middleware/auth';
 import { getQuery, validate } from '../middleware/validate';
 import { notFound } from '../lib/errors';
 import { metasComProgresso } from '../services/goals';
+import { booleanoDaQuery } from '../lib/zod';
 
 export const goalsRouter = Router();
 goalsRouter.use(requireAuth);
@@ -21,7 +22,7 @@ const metaSchema = z.object({
 /** GET /api/metas — metas com valor atual e progresso calculados. */
 goalsRouter.get(
   '/',
-  validate(z.object({ abertas: z.coerce.boolean().optional() }), 'query'),
+  validate(z.object({ abertas: booleanoDaQuery.optional() }), 'query'),
   async (req, res, next) => {
     try {
       const { abertas } = getQuery<{ abertas?: boolean }>(req);

@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Camera, ImageOff, Plus, Ruler, Trash2 } from 'lucide-react';
 import { api, apiDelete, apiGet, apiPost } from '../lib/api';
 import { MEDIDAS_CORPORAIS } from '../lib/constantes';
-import { formatarData, formatarDataCurta, formatarNumero } from '../lib/formato';
+import { formatarData, formatarDataCurta, formatarNumero, paraNumero } from '../lib/formato';
 import type { Medida } from '../lib/tipos';
 import { AreaTexto, Botao, Campo, Cartao, Carregando, ConfirmarAcao, Modal, Selecao, TituloSecao, Vazio } from '../components/ui';
 import { CartaoGrafico, GraficoLinha, COR_INFO } from '../components/Graficos';
@@ -47,12 +47,12 @@ export default function Medidas() {
     mutationFn: () =>
       apiPost<Medida>('/medidas', {
         date: new Date(`${novo.date}T12:00:00`).toISOString(),
-        weightKg: novo.weightKg ? Number(novo.weightKg.replace(',', '.')) : null,
-        bodyFatPct: novo.bodyFatPct ? Number(novo.bodyFatPct.replace(',', '.')) : null,
+        weightKg: novo.weightKg ? paraNumero(novo.weightKg) : null,
+        bodyFatPct: novo.bodyFatPct ? paraNumero(novo.bodyFatPct) : null,
         measures: Object.fromEntries(
           Object.entries(novo.measures)
             .filter(([, valor]) => valor !== '')
-            .map(([chave, valor]) => [chave, Number(String(valor).replace(',', '.'))]),
+            .map(([chave, valor]) => [chave, paraNumero(valor)]),
         ),
         notes: novo.notes || null,
       }),
@@ -300,18 +300,16 @@ export default function Medidas() {
           <div className="grid grid-cols-2 gap-3">
             <Campo
               rotulo="Peso"
-              type="number"
+              type="text"
               inputMode="decimal"
-              step="0.1"
               sufixo="kg"
               value={novo.weightKg}
               onChange={(e) => setNovo((n) => ({ ...n, weightKg: e.target.value }))}
             />
             <Campo
               rotulo="Gordura"
-              type="number"
+              type="text"
               inputMode="decimal"
-              step="0.1"
               sufixo="%"
               value={novo.bodyFatPct}
               onChange={(e) => setNovo((n) => ({ ...n, bodyFatPct: e.target.value }))}
@@ -325,9 +323,8 @@ export default function Medidas() {
                 <Campo
                   key={medida.chave}
                   rotulo={medida.rotulo}
-                  type="number"
+                  type="text"
                   inputMode="decimal"
-                  step="0.1"
                   value={novo.measures[medida.chave] ?? ''}
                   onChange={(e) =>
                     setNovo((n) => ({ ...n, measures: { ...n.measures, [medida.chave]: e.target.value } }))

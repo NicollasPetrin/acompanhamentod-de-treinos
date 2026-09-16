@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Calculator, Repeat, Weight } from 'lucide-react';
 import { useUnidade } from '../lib/auth';
 import { ANILHAS_PADRAO, calcularAnilhas, estimar1RM, kgParaLb, lbParaKg } from '../lib/calculos';
-import { formatarNumero } from '../lib/formato';
+import { formatarNumero, paraNumero } from '../lib/formato';
 import { Abas, Campo, Cartao, Selecao, TituloSecao } from '../components/ui';
 
 export default function Ferramentas() {
@@ -34,7 +34,7 @@ function CalculadoraDe1RM() {
   const [reps, setReps] = useState('8');
   const [formula, setFormula] = useState<'epley' | 'brzycki'>('epley');
 
-  const valorPeso = Number(peso.replace(',', '.')) || 0;
+  const valorPeso = paraNumero(peso);
   const valorReps = Number(reps) || 0;
   const umRm = estimar1RM(valorPeso, valorReps, formula);
 
@@ -58,9 +58,8 @@ function CalculadoraDe1RM() {
         <div className="mt-4 grid grid-cols-2 gap-3">
           <Campo
             rotulo="Carga usada"
-            type="number"
+            type="text"
             inputMode="decimal"
-            step="0.5"
             sufixo="kg"
             value={peso}
             onChange={(e) => setPeso(e.target.value)}
@@ -125,7 +124,7 @@ function CalculadoraDeAnilhas() {
   const [barra, setBarra] = useState('20');
 
   const resultado = useMemo(
-    () => calcularAnilhas(Number(peso.replace(',', '.')) || 0, Number(barra.replace(',', '.')) || 0, ANILHAS_PADRAO),
+    () => calcularAnilhas(paraNumero(peso), paraNumero(barra), ANILHAS_PADRAO),
     [peso, barra],
   );
 
@@ -140,9 +139,8 @@ function CalculadoraDeAnilhas() {
         <div className="mt-4 grid grid-cols-2 gap-3">
           <Campo
             rotulo="Peso total"
-            type="number"
+            type="text"
             inputMode="decimal"
-            step="0.5"
             sufixo="kg"
             value={peso}
             onChange={(e) => setPeso(e.target.value)}
@@ -182,7 +180,7 @@ function CalculadoraDeAnilhas() {
           </p>
           {!resultado.possivel && (
             <p className="mt-1 text-alerta">
-              Não dá para montar exatamente {formatarNumero(Number(peso.replace(',', '.')) || 0)} kg com as anilhas padrão
+              Não dá para montar exatamente {formatarNumero(paraNumero(peso))} kg com as anilhas padrão
               (diferença de {formatarNumero(Math.abs(resultado.diferenca))} kg).
             </p>
           )}
@@ -197,7 +195,7 @@ function ConversorDeUnidade() {
   const [valor, setValor] = useState('100');
   const [de, setDe] = useState<'kg' | 'lb'>(unidadePadrao);
 
-  const numero = Number(valor.replace(',', '.')) || 0;
+  const numero = paraNumero(valor);
   const convertido = de === 'kg' ? kgParaLb(numero) : lbParaKg(numero);
 
   return (
@@ -210,9 +208,8 @@ function ConversorDeUnidade() {
       <div className="mt-4 grid grid-cols-2 gap-3">
         <Campo
           rotulo="Valor"
-          type="number"
+          type="text"
           inputMode="decimal"
-          step="0.5"
           value={valor}
           onChange={(e) => setValor(e.target.value)}
         />

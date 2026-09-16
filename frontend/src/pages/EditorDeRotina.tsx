@@ -11,7 +11,7 @@ import { ArrowLeft, Copy, GripVertical, Pencil, Plus, Trash2 } from 'lucide-reac
 import { apiDelete, apiGet, apiPatch, apiPost } from '../lib/api';
 import { useUnidade } from '../lib/auth';
 import { TECNICAS, corDoGrupo } from '../lib/constantes';
-import { formatarDuracao, paraKg, paraUnidade } from '../lib/formato';
+import { formatarDuracao, paraKg, paraNumero, paraUnidade } from '../lib/formato';
 import type { DiaDaRotina, ExercicioDaRotina, Rotina } from '../lib/tipos';
 import SeletorDeExercicio from '../components/SeletorDeExercicio';
 import { AreaTexto, Botao, Campo, Cartao, Carregando, ConfirmarAcao, Distintivo, Modal, Selecao, Vazio } from '../components/ui';
@@ -414,7 +414,7 @@ function EdicaoDoExercicio({
                 sets: Number(dados.sets),
                 repsMin: Number(dados.repsMin),
                 repsMax: Math.max(Number(dados.repsMin), Number(dados.repsMax)),
-                suggestedLoad: dados.suggestedLoad === '' ? null : paraKg(Number(dados.suggestedLoad), unidade),
+                suggestedLoad: dados.suggestedLoad === '' ? null : paraKg(paraNumero(dados.suggestedLoad), unidade),
                 restSec: Number(dados.restSec),
                 technique: dados.technique,
                 notes: dados.notes || null,
@@ -458,9 +458,8 @@ function EdicaoDoExercicio({
         <div className="grid grid-cols-2 gap-2">
           <Campo
             rotulo={`Carga sugerida (${unidade})`}
-            type="number"
+            type="text"
             inputMode="decimal"
-            step="0.5"
             placeholder="opcional"
             value={dados.suggestedLoad}
             onChange={(e) => setDados((d) => ({ ...d, suggestedLoad: e.target.value }))}

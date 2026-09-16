@@ -127,6 +127,22 @@ describe('rotinas', () => {
     expect(todas.body.find((r: { id: string }) => r.id === a.body.id).isActive).toBe(false);
   });
 
+  it('separa rotinas ativas das arquivadas nos filtros da lista', async () => {
+    const ativa = await request(app).post('/api/rotinas').set(auth(sessao)).send({ name: 'Em uso' });
+    const antiga = await request(app).post('/api/rotinas').set(auth(sessao)).send({ name: 'Fase antiga' });
+    await request(app).post(`/api/rotinas/${antiga.body.id}/arquivar`).set(auth(sessao));
+
+    // `arquivadas=false` precisa trazer só as rotinas em uso
+    const emUso = await request(app).get('/api/rotinas?arquivadas=false').set(auth(sessao));
+    expect(emUso.body.map((r: { id: string }) => r.id)).toEqual([ativa.body.id]);
+
+    const semParametro = await request(app).get('/api/rotinas').set(auth(sessao));
+    expect(semParametro.body.map((r: { id: string }) => r.id)).toEqual([ativa.body.id]);
+
+    const arquivadas = await request(app).get('/api/rotinas?arquivadas=true').set(auth(sessao));
+    expect(arquivadas.body.map((r: { id: string }) => r.id)).toEqual([antiga.body.id]);
+  });
+
   it('compartilha por link e permite copiar para outra conta', async () => {
     const rotina = await request(app)
       .post('/api/rotinas')

@@ -10,7 +10,7 @@ import { useTempoDecorrido } from '../components/CronometroDescanso';
 import CronometroDescanso from '../components/CronometroDescanso';
 import SeletorDeExercicio from '../components/SeletorDeExercicio';
 import { useAuth, useUnidade } from '../lib/auth';
-import { formatarDuracao, formatarVolume, paraKg, paraUnidade, plural } from '../lib/formato';
+import { formatarDuracao, formatarVolume, paraKg, paraNumero, paraUnidade, plural } from '../lib/formato';
 import { volumeTotal } from '../lib/calculos';
 import { TIPOS_PR, TIPOS_SERIE, corDoGrupo } from '../lib/constantes';
 import type { SerieSessao } from '../lib/offline';
@@ -462,13 +462,12 @@ function LinhaDaSerie({ serie, numero, unidade, aoMudar, aoConcluir, aoRemover }
         </button>
 
         <input
-          type="number"
+          type="text"
           inputMode="decimal"
-          step="0.5"
-          min="0"
           value={peso}
-          onChange={(e) => setPeso(e.target.value)}
-          onBlur={() => aoMudar({ weight: paraKg(Number(peso.replace(',', '.')) || 0, unidade) })}
+          // Aceita vírgula (padrão brasileiro) e bloqueia o resto
+          onChange={(e) => setPeso(e.target.value.replace(/[^\d.,]/g, ''))}
+          onBlur={() => aoMudar({ weight: paraKg(paraNumero(peso), unidade) })}
           placeholder="0"
           aria-label={`Peso da série ${numero}`}
           className="min-h-[44px] w-full rounded-lg border border-borda bg-superficie-2 px-2 text-center text-lg font-semibold tabular-nums focus:border-primaria focus:outline-none"
