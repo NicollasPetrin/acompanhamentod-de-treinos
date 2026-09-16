@@ -20,6 +20,8 @@ const listaSchema = z.object({
   tipo: z.string().optional(),
   favoritos: booleanoDaQuery.optional(),
   meus: booleanoDaQuery.optional(),
+  /** Só os exercícios que fazem parte da vida do usuário (ver abaixo). */
+  usados: booleanoDaQuery.optional(),
   pagina: z.coerce.number().int().min(1).default(1),
   limite: z.coerce.number().int().min(1).max(200).default(50),
 });
@@ -42,6 +44,50 @@ exercisesRouter.get('/filtros', (_req, res) => {
 });
 
 /**
+ * "Seus exercícios": tudo que já entrou na rotina do usuário — o que ele
+ * treinou, o que está nas fichas dele e o que ele mesmo cadastrou. Devolve
+ * também quantas vezes cada um foi treinado e quando foi a última vez.
+ */
+async function exerciciosDoUsuario(uid: string) {
+  const [treinados, emRotinas, criados] = await Promise.all([
+    prisma.workoutExercise.groupBy({
+      by: ['exerciseId'],
+      where: { workout: { userId: uid, status: 'concluido' } },
+      _count: { _all: true },
+      _max: { id: true },
+    }),
+    prisma.routineExercise.findMany({
+      where: { day: { routine: { userId: uid } } },
+      select: { exerciseId: true },
+      distinct: ['exerciseId'],
+    }),
+    prisma.exercise.findMany({ where: { createdById: uid }, select: { id: true } }),
+  ]);
+
+  const usos = new Map<string, number>();
+  for (const t of treinados) usos.set(t.exerciseId, t._count._all);
+
+  const ids = new Set<string>([
+    ...treinados.map((t) => t.exerciseId),
+    ...emRotinas.map((r) => r.exerciseId),
+    ...criados.map((c) => c.id),
+  ]);
+
+  // Data do último treino de cada exercício (para mostrar "última vez ...")
+  const ultimos = await prisma.workoutExercise.findMany({
+    where: { exerciseId: { in: [...ids] }, workout: { userId: uid, status: 'concluido' } },
+    select: { exerciseId: true, workout: { select: { startedAt: true } } },
+    orderBy: { workout: { startedAt: 'desc' } },
+  });
+  const ultimoUso = new Map<string, Date>();
+  for (const u of ultimos) {
+    if (!ultimoUso.has(u.exerciseId)) ultimoUso.set(u.exerciseId, u.workout.startedAt);
+  }
+
+  return { ids, usos, ultimoUso };
+}
+
+/**
  * GET /api/exercicios — biblioteca com busca e filtros.
  * Retorna exercícios globais + os personalizados do próprio usuário.
  */
@@ -56,6 +102,8 @@ exercisesRouter.get('/', requireAuth, validate(listaSchema, 'query'), async (req
     });
     const idsFavoritos = new Set(favoritos.map((f) => f.exerciseId));
 
+    const meus = q.usados ? await exerciciosDoUsuario(uid) : null;
+
     const where = {
       AND: [
         q.meus ? { createdById: uid } : { OR: [{ createdById: null }, { createdById: uid }] },
@@ -64,6 +112,7 @@ exercisesRouter.get('/', requireAuth, validate(listaSchema, 'query'), async (req
         q.equipamento ? { equipment: q.equipamento } : {},
         q.tipo ? { type: q.tipo } : {},
         q.favoritos ? { id: { in: [...idsFavoritos] } } : {},
+        meus ? { id: { in: [...meus.ids] } } : {},
       ],
     };
 
@@ -77,16 +126,25 @@ exercisesRouter.get('/', requireAuth, validate(listaSchema, 'query'), async (req
       }),
     ]);
 
-    res.json({
-      total,
-      pagina: q.pagina,
-      limite: q.limite,
-      itens: exercicios.map((e) => ({
-        ...serializeExercise(e),
-        favorito: idsFavoritos.has(e.id),
-        personalizado: e.createdById !== null,
-      })),
-    });
+    // Na aba "seus exercícios", o mais treinado aparece primeiro
+    if (meus) {
+      exercicios.sort(
+        (a, b) =>
+          (meus.usos.get(b.id) ?? 0) - (meus.usos.get(a.id) ?? 0) ||
+          a.name.localeCompare(b.name, 'pt-BR'),
+      );
+    }
+
+    const itens = exercicios.map((e) => ({
+      ...serializeExercise(e),
+      favorito: idsFavoritos.has(e.id),
+      personalizado: e.createdById !== null,
+      ...(meus
+        ? { usos: meus.usos.get(e.id) ?? 0, ultimoUso: meus.ultimoUso.get(e.id) ?? null }
+        : {}),
+    }));
+
+    res.json({ total, pagina: q.pagina, limite: q.limite, itens });
   } catch (err) {
     next(err);
   }

@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, Star } from 'lucide-react';
+import { Plus, Search, Star } from 'lucide-react';
 import { apiGet } from '../lib/api';
 import { EQUIPAMENTOS, GRUPOS_MUSCULARES, corDoGrupo } from '../lib/constantes';
 import type { Exercicio } from '../lib/tipos';
-import { Campo, Carregando, Modal, Selecao, Vazio } from './ui';
+import { Botao, Campo, Carregando, Modal, Selecao, Vazio } from './ui';
+import ModalNovoExercicio from './ModalNovoExercicio';
 
 interface Props {
   aberto: boolean;
@@ -18,16 +19,19 @@ export default function SeletorDeExercicio({ aberto, aoFechar, aoEscolher, titul
   const [busca, setBusca] = useState('');
   const [grupo, setGrupo] = useState('');
   const [equipamento, setEquipamento] = useState('');
-  const [soFavoritos, setSoFavoritos] = useState(false);
+  // Começa pelos exercícios que a pessoa já usa — é quase sempre o que ela quer
+  const [aba, setAba] = useState<'seus' | 'favoritos' | 'todos'>('seus');
+  const [cadastrando, setCadastrando] = useState(false);
 
   const parametros = useMemo(() => {
     const p = new URLSearchParams({ limite: '60' });
     if (busca.trim()) p.set('busca', busca.trim());
     if (grupo) p.set('grupo', grupo);
     if (equipamento) p.set('equipamento', equipamento);
-    if (soFavoritos) p.set('favoritos', 'true');
+    if (aba === 'favoritos') p.set('favoritos', 'true');
+    if (aba === 'seus') p.set('usados', 'true');
     return p.toString();
-  }, [busca, grupo, equipamento, soFavoritos]);
+  }, [busca, grupo, equipamento, aba]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['exercicios', parametros],
@@ -66,15 +70,29 @@ export default function SeletorDeExercicio({ aberto, aoFechar, aoEscolher, titul
           </Selecao>
         </div>
 
-        <label className="flex items-center gap-2 text-sm text-texto-suave">
-          <input
-            type="checkbox"
-            checked={soFavoritos}
-            onChange={(e) => setSoFavoritos(e.target.checked)}
-            className="h-4 w-4 rounded border-borda bg-superficie-2 text-primaria focus:ring-primaria"
-          />
-          Somente favoritos
-        </label>
+        <div className="rolagem-oculta flex gap-2 overflow-x-auto">
+          {(
+            [
+              { valor: 'seus', rotulo: 'Seus exercícios' },
+              { valor: 'favoritos', rotulo: '★ Favoritos' },
+              { valor: 'todos', rotulo: 'Todos' },
+            ] as const
+          ).map((opcao) => (
+            <button
+              key={opcao.valor}
+              type="button"
+              onClick={() => setAba(opcao.valor)}
+              aria-pressed={aba === opcao.valor}
+              className={`shrink-0 rounded-xl px-3.5 py-2 text-sm font-medium ${
+                aba === opcao.valor
+                  ? 'bg-primaria text-[#04140a]'
+                  : 'border border-borda bg-superficie-2 text-texto-suave'
+              }`}
+            >
+              {opcao.rotulo}
+            </button>
+          ))}
+        </div>
 
         {isLoading ? (
           <Carregando texto="Buscando exercícios…" />
@@ -110,9 +128,37 @@ export default function SeletorDeExercicio({ aberto, aoFechar, aoEscolher, titul
             ))}
           </ul>
         ) : (
-          <Vazio titulo="Nenhum exercício encontrado" descricao="Tente outro termo ou limpe os filtros." />
+          <Vazio
+            titulo="Nenhum exercício encontrado"
+            descricao={
+              aba === 'seus'
+                ? 'Você ainda não usou nenhum exercício. Procure em "Todos" ou cadastre o seu.'
+                : 'Tente outro termo, limpe os filtros ou cadastre um exercício novo.'
+            }
+          />
         )}
+
+        {/* Faltou o movimento na lista? Cadastra na hora e já usa */}
+        <Botao
+          variante="secundario"
+          larguraTotal
+          icone={<Plus size={18} />}
+          onClick={() => setCadastrando(true)}
+        >
+          Cadastrar exercício novo
+        </Botao>
       </div>
+
+      <ModalNovoExercicio
+        aberto={cadastrando}
+        aoFechar={() => setCadastrando(false)}
+        nomeInicial={busca.trim()}
+        aoCriar={(exercicio) => {
+          // Criou no meio do caminho: já entra na rotina/treino que estava montando
+          aoEscolher(exercicio);
+          aoFechar();
+        }}
+      />
     </Modal>
   );
 }

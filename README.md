@@ -43,8 +43,11 @@ escuro por padrão e funcionamento **offline**.
   equipamento, tipo e instruções de execução
 - Ilustração gerada pelo próprio servidor (SVG com os músculos destacados,
   vista frontal e posterior) — sem depender de serviços externos
+- Aba **Seus exercícios**: só o que você treina, tem nas rotinas ou cadastrou,
+  ordenado pelos mais usados e com "12 treinos · última vez ontem"
 - Busca com filtros por grupo muscular, equipamento e tipo; favoritos
-- Exercícios personalizados (privados de cada usuário)
+- Cadastro de exercício personalizado pela biblioteca **ou** na hora de montar a
+  rotina e durante o treino — o exercício criado já entra onde você estava
 - Página do exercício com histórico, melhor carga, melhor série, 1RM estimado
   e gráficos de evolução
 
