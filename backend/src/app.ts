@@ -10,6 +10,7 @@ import swaggerUi from 'swagger-ui-express';
 
 import { corsOrigins, env, isTest } from './env';
 import { errorHandler, notFoundHandler } from './middleware/error';
+import { prisma } from './lib/prisma';
 import { openapiDocument } from './docs/openapi';
 import { authRouter } from './routes/auth.routes';
 import { usersRouter } from './routes/users.routes';
@@ -57,9 +58,25 @@ export function createApp({ servirFrontend = true }: OpcoesApp = {}) {
   app.use(cookieParser());
   if (!isTest) app.use(morgan('dev'));
 
-  app.get('/api/saude', (_req, res) =>
-    res.json({ status: 'ok', ambiente: env.NODE_ENV, horario: new Date().toISOString() }),
-  );
+  /**
+   * Verificação de saúde: além de responder, confirma que o banco está
+   * acessível. É a primeira coisa a abrir quando um deploy não funciona.
+   */
+  app.get('/api/saude', async (_req, res) => {
+    const base = { ambiente: env.NODE_ENV, horario: new Date().toISOString() };
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      const exercicios = await prisma.exercise.count();
+      res.json({ status: 'ok', banco: 'conectado', exercicios, ...base });
+    } catch (erro) {
+      res.status(503).json({
+        status: 'erro',
+        banco: 'inacessível',
+        detalhe: erro instanceof Error ? erro.message.split('\n')[0] : 'falha desconhecida',
+        ...base,
+      });
+    }
+  });
 
   // Documentação
   app.get('/api/docs.json', (_req, res) => res.json(openapiDocument));

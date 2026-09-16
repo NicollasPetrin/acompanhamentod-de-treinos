@@ -51,8 +51,13 @@ npm run seed
 
 # Rodando na sua máquina: devolve o Prisma Client para o SQLite de
 # desenvolvimento, senão os testes e o `npm run dev` passam a reclamar do
-# provider. No Render (variável RENDER) não há o que restaurar.
-if [ -z "${RENDER:-}" ]; then
+# provider.
+#
+# A pista de que estamos num ambiente local é o .env que guardamos no início
+# (servidor de produção não tem esse arquivo). Antes isto dependia da variável
+# RENDER, que só existe no Render — em outra hospedagem o cliente voltava para
+# SQLite e a aplicação subia sem conseguir falar com o PostgreSQL.
+if [ -f "$RAIZ/backend/.env.build-bak" ]; then
   echo "▶ Restaurando o Prisma Client de desenvolvimento (SQLite)…"
   npx prisma generate >/dev/null
 fi
