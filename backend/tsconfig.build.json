@@ -1,0 +1,10 @@
+{
+  // Build de produção: compila apenas src/, para que a saída fique em
+  // dist/server.js (o seed e os testes rodam com tsx, sem precisar de build).
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": ["src/**/*.ts"]
+}

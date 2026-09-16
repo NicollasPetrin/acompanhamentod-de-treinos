@@ -1,0 +1,37 @@
+# Dependências
+node_modules/
+.pnp/
+.pnp.js
+
+# Builds
+dist/
+build/
+*.tsbuildinfo
+
+# Banco de dados local (SQLite)
+*.db
+*.db-journal
+*.sqlite
+prisma/*.db
+
+# Variáveis de ambiente
+.env
+.env.local
+.env.*.local
+
+# Logs e caches
+*.log
+npm-debug.log*
+.cache/
+coverage/
+.vite/
+
+# Sistema operacional / editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+# Gerados pelo build de produção (ver deploy/render-build.sh)
+backend/prisma/schema.producao.prisma
+backend/.env.build-bak
