@@ -4,28 +4,24 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Search, Star } from 'lucide-react';
 import { apiDelete, apiGet, apiPost, urlDeMidia } from '../lib/api';
 import { EQUIPAMENTOS, GRUPOS_MUSCULARES, TIPOS_EXERCICIO, corDoGrupo } from '../lib/constantes';
-import { plural } from '../lib/formato';
+import { formatarDataRelativa, plural } from '../lib/formato';
 import type { Exercicio } from '../lib/tipos';
-import { AreaTexto, Botao, Campo, Cartao, Carregando, Distintivo, Modal, Selecao, Vazio } from '../components/ui';
-import { useAvisos } from '../components/Notificacoes';
+import { Botao, Campo, Cartao, Carregando, Distintivo, Selecao, Vazio } from '../components/ui';
+import ModalNovoExercicio from '../components/ModalNovoExercicio';
+
+type Aba = 'seus' | 'favoritos' | 'todos';
 
 export default function Exercicios() {
   const queryClient = useQueryClient();
-  const { sucesso, erro: avisarErro } = useAvisos();
 
   const [busca, setBusca] = useState('');
   const [grupo, setGrupo] = useState('');
   const [equipamento, setEquipamento] = useState('');
   const [tipo, setTipo] = useState('');
-  const [filtro, setFiltro] = useState<'todos' | 'favoritos' | 'meus'>('todos');
+  // Começa pelos exercícios do usuário: a biblioteca inteira tem 178 itens e
+  // quase nunca é o que ele procura no dia a dia.
+  const [filtro, setFiltro] = useState<Aba>('seus');
   const [criando, setCriando] = useState(false);
-  const [novo, setNovo] = useState({
-    name: '',
-    muscleGroup: 'peito',
-    equipment: 'barra',
-    type: 'forca',
-    instructions: '',
-  });
 
   const parametros = useMemo(() => {
     const p = new URLSearchParams({ limite: '100' });
@@ -34,7 +30,7 @@ export default function Exercicios() {
     if (equipamento) p.set('equipamento', equipamento);
     if (tipo) p.set('tipo', tipo);
     if (filtro === 'favoritos') p.set('favoritos', 'true');
-    if (filtro === 'meus') p.set('meus', 'true');
+    if (filtro === 'seus') p.set('usados', 'true');
     return p.toString();
   }, [busca, grupo, equipamento, tipo, filtro]);
 
@@ -49,23 +45,12 @@ export default function Exercicios() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['exercicios'] }),
   });
 
-  const criar = useMutation({
-    mutationFn: () => apiPost<Exercicio>('/exercicios', { ...novo, secondaryMuscles: [] }),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['exercicios'] });
-      setCriando(false);
-      setNovo({ name: '', muscleGroup: 'peito', equipment: 'barra', type: 'forca', instructions: '' });
-      sucesso('Exercício criado!');
-    },
-    onError: () => avisarErro('Não foi possível criar o exercício'),
-  });
-
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Exercícios</h1>
         <Botao icone={<Plus size={18} />} onClick={() => setCriando(true)}>
-          Criar
+          Cadastrar
         </Botao>
       </div>
 
@@ -80,9 +65,9 @@ export default function Exercicios() {
       <div className="rolagem-oculta -mx-4 flex gap-2 overflow-x-auto px-4">
         {(
           [
-            { valor: 'todos', rotulo: 'Todos' },
+            { valor: 'seus', rotulo: 'Seus exercícios' },
             { valor: 'favoritos', rotulo: '★ Favoritos' },
-            { valor: 'meus', rotulo: 'Meus exercícios' },
+            { valor: 'todos', rotulo: 'Todos' },
           ] as const
         ).map((opcao) => (
           <button
@@ -154,6 +139,15 @@ export default function Exercicios() {
                         {GRUPOS_MUSCULARES[exercicio.muscleGroup] ?? exercicio.muscleGroup} ·{' '}
                         {EQUIPAMENTOS[exercicio.equipment] ?? exercicio.equipment}
                       </p>
+                      {exercicio.usos !== undefined && (
+                        <p className="truncate text-xs text-texto-suave">
+                          {exercicio.usos > 0
+                            ? `${plural(exercicio.usos, 'treino')}${
+                                exercicio.ultimoUso ? ` · última vez ${formatarDataRelativa(exercicio.ultimoUso)}` : ''
+                              }`
+                            : 'ainda não treinado'}
+                        </p>
+                      )}
                     </div>
                   </Link>
 
@@ -172,81 +166,28 @@ export default function Exercicios() {
         </>
       ) : (
         <Vazio
-          titulo="Nenhum exercício encontrado"
-          descricao="Ajuste os filtros ou crie um exercício personalizado."
+          titulo={filtro === 'seus' ? 'Você ainda não usou nenhum exercício' : 'Nenhum exercício encontrado'}
+          descricao={
+            filtro === 'seus'
+              ? 'Aqui ficam os exercícios que você treina, os que estão nas suas rotinas e os que você cadastrar. Procure na biblioteca ou crie o seu.'
+              : 'Ajuste os filtros ou crie um exercício personalizado.'
+          }
           acao={
-            <Botao icone={<Plus size={18} />} onClick={() => setCriando(true)}>
-              Criar exercício
-            </Botao>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Botao icone={<Plus size={18} />} onClick={() => setCriando(true)}>
+                Cadastrar exercício
+              </Botao>
+              {filtro === 'seus' && (
+                <Botao variante="secundario" onClick={() => setFiltro('todos')}>
+                  Ver a biblioteca
+                </Botao>
+              )}
+            </div>
           }
         />
       )}
 
-      <Modal
-        aberto={criando}
-        aoFechar={() => setCriando(false)}
-        titulo="Novo exercício"
-        rodape={
-          <div className="flex gap-2">
-            <Botao variante="secundario" larguraTotal onClick={() => setCriando(false)}>
-              Cancelar
-            </Botao>
-            <Botao
-              larguraTotal
-              carregando={criar.isPending}
-              disabled={novo.name.trim().length < 2}
-              onClick={() => criar.mutate()}
-            >
-              Criar
-            </Botao>
-          </div>
-        }
-      >
-        <div className="flex flex-col gap-4">
-          <Campo
-            rotulo="Nome"
-            autoFocus
-            placeholder="Ex.: Supino com pegada neutra"
-            value={novo.name}
-            onChange={(e) => setNovo((n) => ({ ...n, name: e.target.value }))}
-          />
-          <Selecao
-            rotulo="Grupo muscular"
-            value={novo.muscleGroup}
-            onChange={(e) => setNovo((n) => ({ ...n, muscleGroup: e.target.value }))}
-          >
-            {Object.entries(GRUPOS_MUSCULARES).map(([valor, rotulo]) => (
-              <option key={valor} value={valor}>
-                {rotulo}
-              </option>
-            ))}
-          </Selecao>
-          <Selecao
-            rotulo="Equipamento"
-            value={novo.equipment}
-            onChange={(e) => setNovo((n) => ({ ...n, equipment: e.target.value }))}
-          >
-            {Object.entries(EQUIPAMENTOS).map(([valor, rotulo]) => (
-              <option key={valor} value={valor}>
-                {rotulo}
-              </option>
-            ))}
-          </Selecao>
-          <Selecao rotulo="Tipo" value={novo.type} onChange={(e) => setNovo((n) => ({ ...n, type: e.target.value }))}>
-            {Object.entries(TIPOS_EXERCICIO).map(([valor, rotulo]) => (
-              <option key={valor} value={valor}>
-                {rotulo}
-              </option>
-            ))}
-          </Selecao>
-          <AreaTexto
-            rotulo="Instruções de execução"
-            placeholder="Como executar o movimento…"
-            value={novo.instructions}
-            onChange={(e) => setNovo((n) => ({ ...n, instructions: e.target.value }))}
-          />
-        </div>
-      </Modal>
+      <ModalNovoExercicio aberto={criando} aoFechar={() => setCriando(false)} nomeInicial={busca.trim()} />
     </div>
   );
 }

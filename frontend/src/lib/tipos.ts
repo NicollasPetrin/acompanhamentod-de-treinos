@@ -44,6 +44,9 @@ export interface Exercicio {
   createdById: string | null;
   favorito?: boolean;
   personalizado?: boolean;
+  /** Quantas vezes o usuário treinou esse exercício (aba "Seus exercícios"). */
+  usos?: number;
+  ultimoUso?: string | null;
 }
 
 export type TipoSerie = 'normal' | 'aquecimento' | 'drop' | 'rest_pause' | 'falha';
