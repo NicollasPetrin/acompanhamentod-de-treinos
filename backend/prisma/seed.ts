@@ -70,7 +70,13 @@ async function semearExercicios() {
 async function semearUsuarioDemo() {
   const jaExiste = await prisma.user.findUnique({ where: { email: EMAIL_DEMO } });
   if (jaExiste) {
-    console.info('ℹ️  Usuário de demonstração já existe — recriando o histórico do zero.');
+    // Em produção o seed roda a cada deploy: não apagamos nada sem ser mandado.
+    if (process.env.RECRIAR_DEMO !== 'true') {
+      console.info('ℹ️  Usuário de demonstração já existe — nada a fazer.');
+      console.info('   (use RECRIAR_DEMO=true npm run seed para recriar do zero)');
+      return;
+    }
+    console.info('ℹ️  RECRIAR_DEMO=true — recriando o usuário de demonstração do zero.');
     await prisma.user.delete({ where: { id: jaExiste.id } });
   }
 

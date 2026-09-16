@@ -32,7 +32,19 @@ const schema = z.object({
   MAIL_FROM: z.string().default('Treinos <nao-responda@treinos.app>'),
 });
 
-const parsed = schema.safeParse(process.env);
+/**
+ * Em hospedagens como o Render, a URL pública do serviço chega em
+ * RENDER_EXTERNAL_URL. Usamos ela como padrão para os links de e-mail e para o
+ * CORS, evitando ter que configurar isso à mão a cada deploy.
+ */
+const ambiente: NodeJS.ProcessEnv = { ...process.env };
+const urlPublica = process.env.RENDER_EXTERNAL_URL;
+if (urlPublica) {
+  ambiente.APP_URL ??= urlPublica;
+  ambiente.CORS_ORIGINS ??= urlPublica;
+}
+
+const parsed = schema.safeParse(ambiente);
 
 if (!parsed.success) {
   console.error('❌ Variáveis de ambiente inválidas:', parsed.error.flatten().fieldErrors);

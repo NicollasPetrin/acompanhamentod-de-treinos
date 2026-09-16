@@ -1,0 +1,33 @@
+# Blueprint do Render — cria o serviço web e o banco PostgreSQL de uma vez.
+# Use "New + → Blueprint" no painel do Render e aponte para este repositório.
+services:
+  - type: web
+    name: treinos
+    runtime: node
+    plan: free
+    buildCommand: ./deploy/render-build.sh
+    # A própria API serve o site compilado (frontend/dist), então é um serviço só
+    startCommand: cd backend && node dist/server.js
+    healthCheckPath: /api/saude
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: treinos-db
+          property: connectionString
+      # Segredos gerados pelo Render — nunca ficam no repositório
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      # APP_URL e CORS_ORIGINS usam a URL pública do serviço automaticamente
+      # (RENDER_EXTERNAL_URL); defina aqui apenas se usar domínio próprio.
+      - key: MAIL_FROM
+        value: Treinos <nao-responda@treinos.app>
+
+databases:
+  - name: treinos-db
+    plan: free
+    databaseName: treinos
+    user: treinos

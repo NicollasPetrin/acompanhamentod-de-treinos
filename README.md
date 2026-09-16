@@ -104,6 +104,8 @@ escuro por padrão e funcionamento **offline**.
 ```
 .
 ├── iniciar.bat / iniciar.sh    # sobe tudo com um clique (Windows / Linux-macOS)
+├── render.yaml                 # blueprint de deploy (serviço web + PostgreSQL)
+├── deploy/render-build.sh      # build de produção
 ├── backend/
 │   ├── prisma/
 │   │   ├── migrations/         # migrations versionadas
@@ -334,6 +336,68 @@ As mesmas funções existem no frontend (`src/lib/calculos.ts`) para o modo offl
 - **Acessibilidade** — alvos de toque de 44px+, foco visível, `aria-label` nos
   controles só com ícone, tabelas com cabeçalho, avisos anunciados por leitor de
   tela, arrastar e soltar operável pelo teclado e contraste conferido nos dois temas.
+
+---
+
+## Deploy (Render)
+
+O projeto sobe como **um único serviço**: a API serve o site já compilado, e o
+banco vira PostgreSQL gerenciado. O arquivo [`render.yaml`](render.yaml) descreve
+tudo (serviço web + banco), então o Render monta o ambiente sozinho.
+
+1. Acesse [dashboard.render.com](https://dashboard.render.com) e entre com o GitHub.
+2. **New + → Blueprint** e escolha este repositório.
+3. O Render lê o `render.yaml` e propõe criar dois recursos: o serviço **treinos**
+   e o banco **treinos-db**. Confirme em **Apply**.
+4. Aguarde o build (uns 3 a 5 minutos na primeira vez). Ele compila o site,
+   compila a API, cria as tabelas no PostgreSQL e popula os 178 exercícios.
+5. Abra a URL que o Render mostrar (algo como `https://treinos.onrender.com`) e
+   entre com `demo@treinos.app` / `Demo1234`.
+
+Os segredos de JWT são gerados automaticamente pelo Render e a URL pública é
+detectada via `RENDER_EXTERNAL_URL` — não é preciso configurar variável nenhuma
+à mão. Para enviar e-mails de recuperação de senha de verdade, adicione
+`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER` e `SMTP_PASS` nas variáveis do serviço.
+
+### O que o build faz
+
+`deploy/render-build.sh` executa, nesta ordem:
+
+```
+frontend: npm ci && npm run build          → frontend/dist
+backend:  npm ci
+          node scripts/preparar-producao.js  → schema com provider PostgreSQL
+          prisma generate + prisma db push   → cria as tabelas
+          npm run build                      → dist/server.js
+          npm run seed                       → exercícios + usuário demo
+```
+
+O mesmo script roda na sua máquina, caso queira testar o caminho de produção
+antes de publicar:
+
+```bash
+DATABASE_URL="postgresql://usuario:senha@localhost:5432/treinos" ./deploy/render-build.sh
+cd backend && NODE_ENV=production node dist/server.js
+```
+
+### Pontos de atenção no plano gratuito
+
+- O serviço **hiberna após 15 minutos sem acesso**; a primeira visita depois
+  disso demora alguns segundos para responder.
+- O **PostgreSQL gratuito do Render expira** (hoje, 30 dias). Para uso contínuo,
+  troque para um plano pago ou aponte a `DATABASE_URL` para outro Postgres
+  gerenciado (Neon e Supabase têm plano gratuito sem prazo).
+- O disco é efêmero: **fotos de perfil e de progresso são perdidas** a cada
+  deploy ou reinício. Para mantê-las, adicione um disco persistente (plano pago)
+  ou troque o upload por um storage de objetos (S3, Cloudflare R2, Vercel Blob).
+- O seed **não sobrescreve** dados existentes: se o usuário de demonstração já
+  existir, ele é preservado (use `RECRIAR_DEMO=true npm run seed` para recriar).
+
+### Outras hospedagens
+
+O mesmo formato funciona em qualquer serviço que rode Node com um Postgres ao
+lado — Railway, Fly.io, Koyeb, VPS com PM2. Basta usar o `deploy/render-build.sh`
+como build e `cd backend && node dist/server.js` como comando de início.
 
 ---
 
