@@ -7,7 +7,7 @@ import { serializeUser } from '../lib/serialize';
 import { toJson } from '../lib/json';
 import { badRequest, notFound } from '../lib/errors';
 import { checkPasswordStrength, comparePassword, hashPassword } from '../lib/password';
-import { uploadImagem, urlPublica } from '../lib/upload';
+import { uploadImagem, urlDaFoto } from '../lib/upload';
 
 export const usersRouter = Router();
 usersRouter.use(requireAuth);
@@ -77,11 +77,26 @@ usersRouter.patch('/eu/preferencias', validate(preferenciasSchema), async (req, 
 /** POST /api/usuarios/eu/foto — envia a foto de perfil (multipart/form-data, campo `foto`). */
 usersRouter.post('/eu/foto', uploadImagem.single('foto'), async (req, res, next) => {
   try {
+    const uid = userId(req);
     if (!req.file) throw badRequest('Envie um arquivo no campo "foto"');
-    const user = await prisma.user.update({
-      where: { id: userId(req) },
-      data: { photoUrl: urlPublica(req.file.filename) },
+
+    const foto = await prisma.photo.create({
+      data: {
+        userId: uid,
+        mimeType: req.file.mimetype,
+        size: req.file.size,
+        // Uint8Array é o formato que o Prisma espera em colunas Bytes
+        data: new Uint8Array(req.file.buffer),
+      },
     });
+
+    const anterior = await prisma.user.findUnique({ where: { id: uid }, select: { photoUrl: true } });
+    const user = await prisma.user.update({ where: { id: uid }, data: { photoUrl: urlDaFoto(foto.id) } });
+
+    // A foto antiga não serve mais para nada: sai do banco junto
+    const idAnterior = anterior?.photoUrl?.match(/\/api\/fotos\/(.+)$/)?.[1];
+    if (idAnterior) await prisma.photo.deleteMany({ where: { id: idAnterior, userId: uid } });
+
     res.json(serializeUser(user));
   } catch (err) {
     next(err);

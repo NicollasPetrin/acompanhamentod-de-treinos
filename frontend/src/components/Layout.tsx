@@ -10,6 +10,7 @@ import { sincronizarPendentes, useStatusOffline } from '../lib/offline';
 import { Modal, Botao } from './ui';
 import { iniciarLembretes } from '../lib/lembretes';
 import { useAvisos } from './Notificacoes';
+import { urlDeMidia } from '../lib/api';
 
 const PRINCIPAIS = [
   { para: '/app', rotulo: 'Início', icone: Home, fim: true },
@@ -132,7 +133,7 @@ export default function Layout() {
         <div className="mt-auto flex items-center gap-3 rounded-xl border border-borda p-3">
           <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-superficie-2 text-sm font-semibold">
             {usuario?.photoUrl ? (
-              <img src={usuario.photoUrl} alt="" className="h-full w-full object-cover" />
+              <img src={urlDeMidia(usuario.photoUrl)} alt="" className="h-full w-full object-cover" />
             ) : (
               usuario?.name?.charAt(0).toUpperCase()
             )}

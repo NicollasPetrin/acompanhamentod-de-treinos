@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Search, Star } from 'lucide-react';
-import { apiDelete, apiGet, apiPost } from '../lib/api';
+import { apiDelete, apiGet, apiPost, urlDeMidia } from '../lib/api';
 import { EQUIPAMENTOS, GRUPOS_MUSCULARES, TIPOS_EXERCICIO, corDoGrupo } from '../lib/constantes';
 import { plural } from '../lib/formato';
 import type { Exercicio } from '../lib/tipos';
@@ -135,7 +135,7 @@ export default function Exercicios() {
                 <Cartao className="flex items-center gap-3 p-3 transition-colors hover:border-primaria/40">
                   <Link to={`/app/exercicios/${exercicio.id}`} className="flex min-w-0 flex-1 items-center gap-3">
                     <img
-                      src={exercicio.imageUrl}
+                      src={urlDeMidia(exercicio.imageUrl)}
                       alt=""
                       loading="lazy"
                       className="h-14 w-14 shrink-0 rounded-xl bg-superficie-2 object-cover"

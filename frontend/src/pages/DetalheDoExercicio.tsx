@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Star, Trophy } from 'lucide-react';
-import { apiDelete, apiGet, apiPost } from '../lib/api';
+import { apiDelete, apiGet, apiPost, urlDeMidia } from '../lib/api';
 import { useUnidade } from '../lib/auth';
 import { EQUIPAMENTOS, GRUPOS_MUSCULARES, TIPOS_EXERCICIO, TIPOS_PR } from '../lib/constantes';
 import { formatarData, formatarDataCurta, formatarPeso, formatarVolume, plural } from '../lib/formato';
@@ -71,7 +71,7 @@ export default function DetalheDoExercicio() {
       </header>
 
       <img
-        src={exercicio.imageUrl}
+        src={urlDeMidia(exercicio.imageUrl)}
         alt={`Ilustração de ${exercicio.name}`}
         className="w-full rounded-2xl border border-borda bg-superficie"
       />

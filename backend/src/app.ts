@@ -20,9 +20,18 @@ import { measurementsRouter } from './routes/measurements.routes';
 import { goalsRouter } from './routes/goals.routes';
 import { toolsRouter } from './routes/tools.routes';
 import { dataRouter } from './routes/data.routes';
-import { uploadDir } from './lib/upload';
+import { photosRouter } from './routes/photos.routes';
 
-export function createApp() {
+interface OpcoesApp {
+  /**
+   * Servir o site compilado (frontend/dist) pelo mesmo processo.
+   * Verdadeiro quando API e site ficam juntos (execução local, Render);
+   * falso quando o site é publicado à parte (Vercel), onde a CDN cuida disso.
+   */
+  servirFrontend?: boolean;
+}
+
+export function createApp({ servirFrontend = true }: OpcoesApp = {}) {
   const app = express();
 
   app.set('trust proxy', 1);
@@ -46,9 +55,6 @@ export function createApp() {
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
   if (!isTest) app.use(morgan('dev'));
-
-  // Arquivos enviados pelos usuários (fotos de perfil e de progresso)
-  app.use('/uploads', express.static(uploadDir, { maxAge: '7d' }));
 
   app.get('/api/saude', (_req, res) =>
     res.json({ status: 'ok', ambiente: env.NODE_ENV, horario: new Date().toISOString() }),
@@ -75,18 +81,24 @@ export function createApp() {
   app.use('/api/metas', goalsRouter);
   app.use('/api/ferramentas', toolsRouter);
   app.use('/api/dados', dataRouter);
+  app.use('/api/fotos', photosRouter);
 
-  // Em produção o build do frontend é servido pelo mesmo processo (opcional)
-  const frontendDist = path.resolve(process.cwd(), '..', 'frontend', 'dist');
-  app.use(express.static(frontendDist, { index: false, fallthrough: true }));
+  if (servirFrontend) {
+    // Site compilado servido pelo mesmo processo, com fallback para o index
+    // (rotas do React Router precisam devolver o index.html)
+    const frontendDist = path.resolve(process.cwd(), '..', 'frontend', 'dist');
+    app.use(express.static(frontendDist, { index: false, fallthrough: true }));
 
-  app.use('/api', notFoundHandler);
-  app.get('*', (req, res, next) => {
-    if (req.method !== 'GET') return next();
-    res.sendFile(path.join(frontendDist, 'index.html'), (err) => {
-      if (err) notFoundHandler(req, res);
+    app.use('/api', notFoundHandler);
+    app.get('*', (req, res, next) => {
+      if (req.method !== 'GET') return next();
+      res.sendFile(path.join(frontendDist, 'index.html'), (err) => {
+        if (err) notFoundHandler(req, res);
+      });
     });
-  });
+  } else {
+    app.use(notFoundHandler);
+  }
 
   app.use(errorHandler);
 

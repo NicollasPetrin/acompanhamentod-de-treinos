@@ -6,7 +6,7 @@ import { getQuery, validate } from '../middleware/validate';
 import { serializeMeasurement } from '../lib/serialize';
 import { parseJson, toJson } from '../lib/json';
 import { badRequest, notFound } from '../lib/errors';
-import { uploadImagem, urlPublica } from '../lib/upload';
+import { uploadImagem, urlDaFoto } from '../lib/upload';
 
 export const measurementsRouter = Router();
 measurementsRouter.use(requireAuth);
@@ -138,8 +138,18 @@ measurementsRouter.post('/:id/fotos', uploadImagem.single('foto'), async (req, r
     if (!atual) throw notFound('Medida não encontrada');
     if (!req.file) throw badRequest('Envie um arquivo no campo "foto"');
 
+    const foto = await prisma.photo.create({
+      data: {
+        userId: userId(req),
+        mimeType: req.file.mimetype,
+        size: req.file.size,
+        // Uint8Array é o formato que o Prisma espera em colunas Bytes
+        data: new Uint8Array(req.file.buffer),
+      },
+    });
+
     const fotos = parseJson<string[]>(atual.photos, []);
-    fotos.push(urlPublica(req.file.filename));
+    fotos.push(urlDaFoto(foto.id));
 
     const registro = await prisma.bodyMeasurement.update({
       where: { id: atual.id },
@@ -165,6 +175,11 @@ measurementsRouter.delete('/:id/fotos', validate(z.object({ url: z.string().min(
       where: { id: atual.id },
       data: { photos: toJson(fotos) },
     });
+
+    // Apaga a imagem do banco também (só as do próprio usuário)
+    const idDaFoto = url.match(/\/api\/fotos\/(.+)$/)?.[1];
+    if (idDaFoto) await prisma.photo.deleteMany({ where: { id: idDaFoto, userId: userId(req) } });
+
     res.json(serializeMeasurement(registro));
   } catch (err) {
     next(err);

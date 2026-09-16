@@ -16,7 +16,8 @@
     "seed": "tsx prisma/seed.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "vercel-build": "node scripts/preparar-producao.js && prisma generate --schema=prisma/schema.producao.prisma && prisma db push --schema=prisma/schema.producao.prisma --skip-generate && npm run seed"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

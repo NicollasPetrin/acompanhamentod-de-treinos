@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  Check, ChevronDown, ChevronUp, Flag, MessageSquarePlus, MoreVertical, Plus, Timer, Trash2, Trophy, Users, X,
+  Check, ChevronDown, ChevronUp, Flag, MessageSquarePlus, MoreVertical, Play, Plus, Timer, Trash2, Trophy, Users, X,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useSessaoTreino } from '../lib/sessaoTreino';
@@ -10,13 +10,14 @@ import { useTempoDecorrido } from '../components/CronometroDescanso';
 import CronometroDescanso from '../components/CronometroDescanso';
 import SeletorDeExercicio from '../components/SeletorDeExercicio';
 import { useAuth, useUnidade } from '../lib/auth';
-import { formatarDuracao, formatarVolume, paraKg, paraNumero, paraUnidade, plural } from '../lib/formato';
+import { formatarDataRelativa, formatarDuracao, formatarVolume, paraKg, paraNumero, paraUnidade, plural } from '../lib/formato';
 import { volumeTotal } from '../lib/calculos';
 import { TIPOS_PR, TIPOS_SERIE, corDoGrupo } from '../lib/constantes';
 import type { SerieSessao } from '../lib/offline';
 import type { TipoSerie } from '../lib/tipos';
 import { AreaTexto, Botao, Cartao, Carregando, ConfirmarAcao, Distintivo, Modal, Selecao, Vazio } from '../components/ui';
 import { useAvisos } from '../components/Notificacoes';
+import { urlDeMidia } from '../lib/api';
 
 export default function Treino() {
   const { id } = useParams();
@@ -29,7 +30,7 @@ export default function Treino() {
   const { sucesso, avisar, erro: avisarErro } = useAvisos();
 
   const {
-    sessao, carregando, erro,
+    sessao, carregando, erro, conflito, descartarConflitoEIniciar,
     atualizarSerie, alternarConclusao, adicionarSerie, removerSerie,
     adicionarExercicio, removerExercicio, definirNotasExercicio, definirDadosDoTreino,
     finalizar, descartar,
@@ -66,6 +67,33 @@ export default function Treino() {
   }, [sessao, totais.concluidas]);
 
   if (carregando) return <Carregando texto="Preparando seu treino…" />;
+
+  // Já existe um treino em andamento de outro dia — o usuário escolhe o caminho
+  if (conflito) {
+    return (
+      <div className="flex flex-col gap-4 py-8">
+        <Vazio
+          icone={<Timer size={32} />}
+          titulo="Você já tem um treino em andamento"
+          descricao={`"${conflito.name}" começou ${formatarDataRelativa(conflito.startedAt)} e ainda não foi finalizado.`}
+        />
+        <Botao
+          tamanho="lg"
+          larguraTotal
+          icone={<Play size={20} />}
+          onClick={() => navegar(`/app/treino/${conflito.id}`, { replace: true })}
+        >
+          Retomar esse treino
+        </Botao>
+        <Botao variante="secundario" larguraTotal onClick={descartarConflitoEIniciar}>
+          Descartar e começar este
+        </Botao>
+        <Botao variante="fantasma" larguraTotal onClick={() => navegar('/app')}>
+          Voltar para o início
+        </Botao>
+      </div>
+    );
+  }
 
   if (erro || !sessao) {
     return (
@@ -374,7 +402,7 @@ export default function Treino() {
             >
               <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-superficie-2 font-semibold">
                 {conta.photoUrl ? (
-                  <img src={conta.photoUrl} alt="" className="h-full w-full object-cover" />
+                  <img src={urlDeMidia(conta.photoUrl)} alt="" className="h-full w-full object-cover" />
                 ) : (
                   conta.name.charAt(0).toUpperCase()
                 )}

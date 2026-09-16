@@ -23,7 +23,19 @@ if (!blocoDatasource.test(schema)) {
   process.exit(1);
 }
 
-const producao = schema.replace(blocoDatasource, '$1"postgresql"');
+let producao = schema.replace(blocoDatasource, '$1"postgresql"');
+
+// Bancos serverless (Neon, Supabase) entregam duas URLs: uma com pool de
+// conexões, para a aplicação, e uma direta, para criar/alterar tabelas. Quando
+// DIRECT_URL existir, o Prisma usa cada uma no seu lugar.
+if (process.env.DIRECT_URL) {
+  producao = producao.replace(
+    /(datasource\s+db\s*\{[^}]*?url\s*=\s*env\("DATABASE_URL"\))/,
+    '$1\n  directUrl = env("DIRECT_URL")',
+  );
+  console.info('ℹ️  DIRECT_URL detectada: o schema de produção vai usá-la para migrações.');
+}
+
 fs.writeFileSync(destino, producao);
 
 // Confere o resultado antes de seguir: um build apontando para o banco errado

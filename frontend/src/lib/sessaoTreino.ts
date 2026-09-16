@@ -196,6 +196,9 @@ export function useSessaoTreino({ userId, treinoId, diaId }: Opcoes) {
   const [sessao, definirSessao] = useState<SessaoTreino | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  /** Treino em andamento de outro dia: o usuário decide o que fazer com ele. */
+  const [conflito, setConflito] = useState<Treino | null>(null);
+  const [tentativa, setTentativa] = useState(0);
 
   const sessaoRef = useRef<SessaoTreino | null>(null);
   /** Marca que alguma alteração não chegou ao servidor: o treino inteiro será reenviado no fim. */
@@ -255,15 +258,32 @@ export function useSessaoTreino({ userId, treinoId, diaId }: Opcoes) {
           return;
         }
 
+        // 2b) Já existe um treino em andamento, mas de outro dia: em vez de dar
+        // erro, a tela pergunta se é para retomar aquele ou descartar e começar.
+        if (existente) {
+          if (!ativo) return;
+          setConflito(existente);
+          return;
+        }
+
         // 3) Começa um treino novo
         const clientId = idLocal('cli');
         const criado = await apiPost<Treino>('/treinos/iniciar', {
           routineDayId: diaId ?? null,
           clientId,
-        }).catch((falha) => {
+        }).catch(async (falha) => {
           if (falha instanceof ErroApi && falha.offline) return null;
+          if (falha instanceof ErroApi && falha.status === 409) {
+            const emAndamento = await apiGet<Treino | null>('/treinos/em-andamento').catch(() => null);
+            if (emAndamento) {
+              setConflito(emAndamento);
+              return 'conflito' as const;
+            }
+          }
           throw falha;
         });
+
+        if (criado === 'conflito') return;
 
         if (criado) {
           const convertida = converterTreino({ ...criado, clientId }, melhores);
@@ -291,7 +311,7 @@ export function useSessaoTreino({ userId, treinoId, diaId }: Opcoes) {
     return () => {
       ativo = false;
     };
-  }, [userId, treinoId, diaId]);
+  }, [userId, treinoId, diaId, tentativa]);
 
   /* ----------------------------------------------------------------- Ações */
 
@@ -520,6 +540,17 @@ export function useSessaoTreino({ userId, treinoId, diaId }: Opcoes) {
     return { resumo: resumoLocal(atual, fim), offline: enviados === 0 };
   }, [userId]);
 
+  /** Descarta o treino em andamento conflitante e inicia o que foi pedido. */
+  const descartarConflitoEIniciar = useCallback(async () => {
+    const existente = conflito;
+    if (!existente) return;
+    setConflito(null);
+    setCarregando(true);
+    await apiPost(`/treinos/${existente.id}/descartar`).catch(() => undefined);
+    await apagarRascunho(userId);
+    setTentativa((n) => n + 1);
+  }, [conflito, userId]);
+
   const descartar = useCallback(async () => {
     const atual = sessaoRef.current;
     await apagarRascunho(userId);
@@ -534,6 +565,8 @@ export function useSessaoTreino({ userId, treinoId, diaId }: Opcoes) {
     sessao,
     carregando,
     erro,
+    conflito,
+    descartarConflitoEIniciar,
     atualizarSerie,
     alternarConclusao,
     adicionarSerie,

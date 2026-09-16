@@ -19,10 +19,6 @@ prisma/*.db
 .env.local
 .env.*.local
 
-# Uploads de usuários
-backend/uploads/*
-!backend/uploads/.gitkeep
-
 # Logs e caches
 *.log
 npm-debug.log*

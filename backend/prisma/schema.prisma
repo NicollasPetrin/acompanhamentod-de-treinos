@@ -56,6 +56,7 @@ model User {
   goals             Goal[]
   personalRecords   PersonalRecord[]
   achievements      Achievement[]
+  photos            Photo[]
 }
 
 model RefreshToken {
@@ -79,6 +80,24 @@ model PasswordResetToken {
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Fotos enviadas pelo usuário (perfil e progresso).
+///
+/// Ficam no banco, e não em disco, porque as hospedagens gratuitas descartam
+/// o sistema de arquivos a cada deploy. O app comprime a imagem no celular
+/// antes de enviar, então cada foto ocupa poucas centenas de KB.
+model Photo {
+  id        String   @id @default(cuid())
+  userId    String
+  mimeType  String
+  size      Int
+  data      Bytes
+  createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

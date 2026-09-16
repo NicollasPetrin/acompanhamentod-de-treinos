@@ -1,5 +1,24 @@
 import type { Sessao } from './tipos';
 
+/**
+ * Endereço da API.
+ *
+ * Em desenvolvimento fica vazio: o Vite faz proxy de /api para o backend local.
+ * Em produção, quando o site e a API ficam em domínios diferentes (Vercel, por
+ * exemplo), defina VITE_API_URL com a URL da API.
+ */
+export const BASE_API = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
+
+/**
+ * Resolve caminhos de mídia devolvidos pela API (fotos e ilustrações), que vêm
+ * relativos: `/api/fotos/abc` → `https://api.exemplo.com/api/fotos/abc`.
+ */
+export const urlDeMidia = (caminho: string | null | undefined): string => {
+  if (!caminho) return '';
+  if (/^(https?:|data:|blob:)/.test(caminho)) return caminho;
+  return `${BASE_API}${caminho}`;
+};
+
 const CHAVE_SESSAO = 'treinos.sessao';
 /** Contas guardadas no aparelho — base do "treino em dupla". */
 const CHAVE_CONTAS = 'treinos.contas';
@@ -99,7 +118,7 @@ async function renovarToken(): Promise<string | null> {
     if (!sessao?.refreshToken) return null;
 
     try {
-      const resposta = await fetch('/api/auth/refresh', {
+      const resposta = await fetch(`${BASE_API}/api/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken: sessao.refreshToken }),
@@ -135,7 +154,7 @@ export async function api<T>(caminho: string, opcoes: Opcoes = {}): Promise<T> {
     if (body !== undefined && !ehFormData) cabecalhos['Content-Type'] = 'application/json';
     if (token) cabecalhos.Authorization = `Bearer ${token}`;
 
-    return fetch(`/api${caminho}`, {
+    return fetch(`${BASE_API}/api${caminho}`, {
       ...resto,
       headers: cabecalhos,
       body: body === undefined ? undefined : ehFormData ? body : JSON.stringify(body),

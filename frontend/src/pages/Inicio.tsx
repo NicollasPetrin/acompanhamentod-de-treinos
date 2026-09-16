@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Activity, CalendarDays, Dumbbell, Flame, Play, Plus, Timer, TrendingUp } from 'lucide-react';
-import { apiGet } from '../lib/api';
+import { apiGet, urlDeMidia } from '../lib/api';
 import { useAuth, useUnidade } from '../lib/auth';
 import { formatarDataRelativa, formatarMinutos, formatarVolume, plural } from '../lib/formato';
 import { GRUPOS_MUSCULARES } from '../lib/constantes';
@@ -44,7 +44,7 @@ export default function Inicio() {
         <Link to="/app/configuracoes" aria-label="Perfil e configurações">
           <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-borda bg-superficie-2 font-semibold">
             {usuario?.photoUrl ? (
-              <img src={usuario.photoUrl} alt="" className="h-full w-full object-cover" />
+              <img src={urlDeMidia(usuario.photoUrl)} alt="" className="h-full w-full object-cover" />
             ) : (
               primeiroNome.charAt(0).toUpperCase()
             )}

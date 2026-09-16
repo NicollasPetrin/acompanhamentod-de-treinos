@@ -23,6 +23,7 @@ escuro por padrão e funcionamento **offline**.
 - [Como funciona o modo offline](#como-funciona-o-modo-offline)
 - [Regras de cálculo](#regras-de-cálculo)
 - [Decisões de projeto](#decisões-de-projeto)
+- [Deploy gratuito (Vercel + Neon)](#deploy-gratuito-vercel--neon)
 - [Limitações conhecidas](#limitações-conhecidas)
 
 ---
@@ -76,7 +77,8 @@ escuro por padrão e funcionamento **offline**.
 
 **Medidas, metas e extras**
 - Medidas corporais (peso, % de gordura e 9 circunferências) com gráficos
-- Fotos de progresso com comparação lado a lado
+- Fotos de progresso com comparação lado a lado (comprimidas no aparelho e
+  guardadas no banco, para não sumirem em hospedagem gratuita)
 - Metas com barra de progresso automática (carga, 1RM, peso corporal, frequência…)
 - Lembretes de treino por notificação nos dias e horário configurados
 - **Treino em dupla**: duas contas conectadas no mesmo aparelho, com troca
@@ -104,7 +106,7 @@ escuro por padrão e funcionamento **offline**.
 ```
 .
 ├── iniciar.bat / iniciar.sh    # sobe tudo com um clique (Windows / Linux-macOS)
-├── render.yaml                 # blueprint de deploy (serviço web + PostgreSQL)
+├── render.yaml                 # blueprint de deploy alternativo (serviço único)
 ├── deploy/render-build.sh      # build de produção
 ├── backend/
 │   ├── prisma/
@@ -202,7 +204,8 @@ Arquivo `backend/.env` (veja `backend/.env.example`):
 | `REFRESH_TOKEN_SHORT_TTL_DAYS` | `1` | Validade do refresh sem "manter conectado" |
 | `APP_URL` | `http://localhost:5173` | Base dos links enviados por e-mail |
 | `CORS_ORIGINS` | `http://localhost:5173,…` | Origens liberadas no CORS |
-| `UPLOAD_DIR` / `MAX_UPLOAD_MB` | `uploads` / `5` | Fotos de perfil e de progresso |
+| `MAX_UPLOAD_MB` | `5` | Tamanho máximo das fotos (guardadas no banco) |
+| `DIRECT_URL` | — | Conexão direta do banco, usada para criar as tabelas em provedores serverless (Neon, Supabase) |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | — | Envio de e-mail; **sem SMTP configurado o e-mail é impresso no console**, o que já permite testar a recuperação de senha |
 
 ---
@@ -339,65 +342,80 @@ As mesmas funções existem no frontend (`src/lib/calculos.ts`) para o modo offl
 
 ---
 
-## Deploy (Render)
+## Deploy gratuito (Vercel + Neon)
 
-O projeto sobe como **um único serviço**: a API serve o site já compilado, e o
-banco vira PostgreSQL gerenciado. O arquivo [`render.yaml`](render.yaml) descreve
-tudo (serviço web + banco), então o Render monta o ambiente sozinho.
+O app roda de graça, sem cartão de crédito e sem hibernar, em dois serviços com
+plano gratuito: **Vercel** (site e API) e **Neon** (PostgreSQL).
 
-1. Acesse [dashboard.render.com](https://dashboard.render.com) e entre com o GitHub.
-2. **New + → Blueprint** e escolha este repositório.
-3. O Render lê o `render.yaml` e propõe criar dois recursos: o serviço **treinos**
-   e o banco **treinos-db**. Confirme em **Apply**.
-4. Aguarde o build (uns 3 a 5 minutos na primeira vez). Ele compila o site,
-   compila a API, cria as tabelas no PostgreSQL e popula os 178 exercícios.
-5. Abra a URL que o Render mostrar (algo como `https://treinos.onrender.com`) e
-   entre com `demo@treinos.app` / `Demo1234`.
+### 1. Banco de dados no Neon
 
-Os segredos de JWT são gerados automaticamente pelo Render e a URL pública é
-detectada via `RENDER_EXTERNAL_URL` — não é preciso configurar variável nenhuma
-à mão. Para enviar e-mails de recuperação de senha de verdade, adicione
-`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER` e `SMTP_PASS` nas variáveis do serviço.
+1. Crie a conta em [neon.tech](https://neon.tech) (login pelo GitHub).
+2. **Create project** → nome `treinos`, região mais próxima (ex.: `AWS us-east-1`).
+3. Na tela de conexão, copie **duas** URLs em *Connection string*:
+   - a **pooled** (tem `-pooler` no host) → será a `DATABASE_URL`
+   - a **direct** (sem `-pooler`) → será a `DIRECT_URL`
 
-### O que o build faz
+### 2. API na Vercel
 
-`deploy/render-build.sh` executa, nesta ordem:
+1. Em [vercel.com](https://vercel.com) → **Add New… → Project** → importe este repositório.
+2. Em **Root Directory**, escolha **`backend`**.
+3. Em **Environment Variables**, adicione:
 
-```
-frontend: npm ci && npm run build          → frontend/dist
-backend:  npm ci
-          node scripts/preparar-producao.js  → schema com provider PostgreSQL
-          prisma generate + prisma db push   → cria as tabelas
-          npm run build                      → dist/server.js
-          npm run seed                       → exercícios + usuário demo
-```
+   | Nome | Valor |
+   |---|---|
+   | `DATABASE_URL` | a URL *pooled* do Neon |
+   | `DIRECT_URL` | a URL *direct* do Neon |
+   | `JWT_ACCESS_SECRET` | qualquer texto longo e aleatório |
+   | `JWT_REFRESH_SECRET` | outro texto longo e aleatório |
+   | `CORS_ORIGINS` | a URL do site (passo 3) — pode preencher depois |
 
-O mesmo script roda na sua máquina, caso queira testar o caminho de produção
-antes de publicar:
+4. **Deploy**. O build cria as tabelas no Neon e cadastra os 178 exercícios.
+5. Guarde a URL que a Vercel gerar, algo como `https://treinos-api.vercel.app`.
+
+### 3. Site na Vercel
+
+1. **Add New… → Project** → o mesmo repositório (sim, de novo).
+2. Em **Root Directory**, escolha **`frontend`**.
+3. Em **Environment Variables**, adicione `VITE_API_URL` com a URL da API do passo 2.
+4. **Deploy**. Essa é a URL que você manda para os amigos.
+5. Volte no projeto da API e ajuste `CORS_ORIGINS` com a URL do site, depois
+   **Redeploy** a API.
+
+Pronto: entre com `demo@treinos.app` / `Demo1234`, crie sua conta e a dos amigos.
+
+### Por que dois projetos
+
+A Vercel roda o site numa CDN e a API como função serverless — são naturezas
+diferentes, e cada projeto aponta para uma pasta do repositório. A vantagem do
+plano gratuito da Vercel é não hibernar: o app abre rápido mesmo depois de dias
+sem uso, que é o que importa quando você chega na academia.
+
+### Limites do plano gratuito
+
+| Recurso | Limite | Para um grupo de amigos |
+|---|---|---|
+| Neon | 0,5 GB de banco | Milhares de treinos e ~2.000 fotos de progresso |
+| Vercel | 100 GB de tráfego/mês | Muito além do necessário |
+| Funções | 10s por requisição | As respostas ficam em milissegundos |
+
+Nada expira por tempo: o Neon só pausa o banco depois de dias sem acesso e
+religa sozinho na primeira consulta.
+
+### Alternativa: um serviço só (Render)
+
+Se preferir uma URL única, o [`render.yaml`](render.yaml) sobe a API servindo o
+site junto: **New + → Blueprint** no [Render](https://dashboard.render.com),
+apontando `DATABASE_URL` (e `DIRECT_URL`) para o mesmo banco do Neon. O plano
+gratuito do Render **hiberna** após 15 minutos parado, então a primeira visita
+depois disso demora de 30 a 60 segundos.
+
+O build de produção é o [`deploy/render-build.sh`](deploy/render-build.sh), que
+também roda na sua máquina para testar o caminho de produção:
 
 ```bash
 DATABASE_URL="postgresql://usuario:senha@localhost:5432/treinos" ./deploy/render-build.sh
 cd backend && NODE_ENV=production node dist/server.js
 ```
-
-### Pontos de atenção no plano gratuito
-
-- O serviço **hiberna após 15 minutos sem acesso**; a primeira visita depois
-  disso demora alguns segundos para responder.
-- O **PostgreSQL gratuito do Render expira** (hoje, 30 dias). Para uso contínuo,
-  troque para um plano pago ou aponte a `DATABASE_URL` para outro Postgres
-  gerenciado (Neon e Supabase têm plano gratuito sem prazo).
-- O disco é efêmero: **fotos de perfil e de progresso são perdidas** a cada
-  deploy ou reinício. Para mantê-las, adicione um disco persistente (plano pago)
-  ou troque o upload por um storage de objetos (S3, Cloudflare R2, Vercel Blob).
-- O seed **não sobrescreve** dados existentes: se o usuário de demonstração já
-  existir, ele é preservado (use `RECRIAR_DEMO=true npm run seed` para recriar).
-
-### Outras hospedagens
-
-O mesmo formato funciona em qualquer serviço que rode Node com um Postgres ao
-lado — Railway, Fly.io, Koyeb, VPS com PM2. Basta usar o `deploy/render-build.sh`
-como build e `cd backend && node dist/server.js` como comando de início.
 
 ---
 
@@ -409,8 +427,9 @@ como build e `cd backend && node dist/server.js` como comando de início.
 - **Importação**: o CSV do Strong e do Hevy é reconhecido automaticamente.
   Exercícios cujo nome não casa com a biblioteca viram exercícios personalizados
   (há um dicionário com os nomes mais comuns em inglês).
-- **Uploads** ficam em disco (`backend/uploads`). Para produção em várias
-  instâncias, troque por um storage de objetos (S3 ou equivalente).
+- **Fotos** ficam no banco (tabela `photos`), comprimidas no aparelho antes do
+  envio — assim sobrevivem a deploys em hospedagem gratuita, que descarta o
+  disco. Com muitos usuários, vale migrar para um storage de objetos (S3, R2).
 - **Treino em dupla**: as duas pessoas alternam entre as contas no mesmo
   aparelho (cada uma com seu treino e seu rascunho), mas as duas telas não
   ficam visíveis ao mesmo tempo — é uma troca, não uma tela dividida.

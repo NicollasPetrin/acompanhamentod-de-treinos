@@ -20,7 +20,7 @@ const schema = z.object({
   APP_URL: z.string().default('http://localhost:5173'),
   CORS_ORIGINS: z.string().default('http://localhost:5173,http://localhost:4173'),
 
-  UPLOAD_DIR: z.string().default('uploads'),
+  /** Limite do upload de fotos (elas são comprimidas no app antes de subir). */
   MAX_UPLOAD_MB: z.coerce.number().positive().default(5),
 
   // E-mail (recuperação de senha). Sem SMTP configurado os e-mails são

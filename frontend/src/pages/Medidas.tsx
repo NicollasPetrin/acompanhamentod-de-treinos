@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Camera, ImageOff, Plus, Ruler, Trash2 } from 'lucide-react';
-import { api, apiDelete, apiGet, apiPost } from '../lib/api';
+import { api, apiDelete, apiGet, apiPost, urlDeMidia } from '../lib/api';
 import { MEDIDAS_CORPORAIS } from '../lib/constantes';
 import { formatarData, formatarDataCurta, formatarNumero, paraNumero } from '../lib/formato';
+import { comprimirImagem } from '../lib/imagem';
 import type { Medida } from '../lib/tipos';
 import { AreaTexto, Botao, Campo, Cartao, Carregando, ConfirmarAcao, Modal, Selecao, TituloSecao, Vazio } from '../components/ui';
 import { CartaoGrafico, GraficoLinha, COR_INFO } from '../components/Graficos';
@@ -76,7 +77,7 @@ export default function Medidas() {
   const enviarFoto = useMutation({
     mutationFn: async ({ id, arquivo }: { id: string; arquivo: File }) => {
       const dados = new FormData();
-      dados.append('foto', arquivo);
+      dados.append('foto', await comprimirImagem(arquivo));
       return api<Medida>(`/medidas/${id}/fotos`, { method: 'POST', body: dados });
     },
     onSuccess: async () => {
@@ -198,7 +199,7 @@ export default function Medidas() {
                 {comFotos.map((medida) =>
                   medida.photos.map((foto) => (
                     <figure key={foto} className="w-36 shrink-0">
-                      <img src={foto} alt={`Foto de ${formatarData(medida.date)}`} className="h-48 w-36 rounded-xl border border-borda object-cover" />
+                      <img src={urlDeMidia(foto)} alt={`Foto de ${formatarData(medida.date)}`} className="h-48 w-36 rounded-xl border border-borda object-cover" />
                       <figcaption className="mt-1 text-center text-xs text-texto-suave">
                         {formatarData(medida.date)}
                       </figcaption>
@@ -393,7 +394,7 @@ function ComparadorDeFotos({ medidas }: { medidas: Medida[] }) {
             <figure key={lado}>
               {medida?.photos[0] ? (
                 <img
-                  src={medida.photos[0]}
+                  src={urlDeMidia(medida.photos[0])}
                   alt={`Foto de ${formatarData(medida.date)}`}
                   className="aspect-[3/4] w-full rounded-xl border border-borda object-cover"
                 />

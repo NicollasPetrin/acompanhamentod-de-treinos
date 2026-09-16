@@ -4,10 +4,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Bell, Camera, Download, LogOut, Moon, Palette, Ruler, Save, Sun, Trash2, Upload, User, Users, KeyRound, FileJson,
 } from 'lucide-react';
-import { api, apiDelete, apiPatch, apiPost, lerSessao } from '../lib/api';
+import { api, apiDelete, apiPatch, apiPost, lerSessao, urlDeMidia, BASE_API } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { DIAS_SEMANA, NIVEIS, OBJETIVOS, SEXOS } from '../lib/constantes';
 import { paraNumero } from '../lib/formato';
+import { comprimirImagem } from '../lib/imagem';
 import { notificacoesSuportadas, pedirPermissaoNotificacoes } from '../lib/lembretes';
 import type { Usuario } from '../lib/tipos';
 import { AreaTexto, Botao, Campo, Cartao, Modal, Selecao, TituloSecao } from '../components/ui';
@@ -78,7 +79,7 @@ export default function Configuracoes() {
   const enviarFoto = useMutation({
     mutationFn: async (arquivo: File) => {
       const dados = new FormData();
-      dados.append('foto', arquivo);
+      dados.append('foto', await comprimirImagem(arquivo));
       return api<Usuario>('/usuarios/eu/foto', { method: 'POST', body: dados });
     },
     onSuccess: (novo) => {
@@ -122,7 +123,7 @@ export default function Configuracoes() {
   /** O download precisa do token, então baixamos via fetch autenticado. */
   const exportar = async (formato: 'json' | 'csv') => {
     try {
-      const resposta = await fetch(`/api/dados/exportar?formato=${formato}`, {
+      const resposta = await fetch(`${BASE_API}/api/dados/exportar?formato=${formato}`, {
         headers: { Authorization: `Bearer ${lerSessao()?.accessToken ?? ''}` },
       });
       if (!resposta.ok) throw new Error('falha');
@@ -170,7 +171,7 @@ export default function Configuracoes() {
           <div className="flex items-center gap-4">
             <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-borda bg-superficie-2 text-2xl font-semibold">
               {usuario.photoUrl ? (
-                <img src={usuario.photoUrl} alt="" className="h-full w-full object-cover" />
+                <img src={urlDeMidia(usuario.photoUrl)} alt="" className="h-full w-full object-cover" />
               ) : (
                 usuario.name.charAt(0).toUpperCase()
               )}
@@ -398,7 +399,7 @@ export default function Configuracoes() {
             >
               <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-superficie-2 font-semibold">
                 {conta.photoUrl ? (
-                  <img src={conta.photoUrl} alt="" className="h-full w-full object-cover" />
+                  <img src={urlDeMidia(conta.photoUrl)} alt="" className="h-full w-full object-cover" />
                 ) : (
                   conta.name.charAt(0).toUpperCase()
                 )}
