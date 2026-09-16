@@ -23,6 +23,7 @@ escuro por padrão e funcionamento **offline**.
 - [Como funciona o modo offline](#como-funciona-o-modo-offline)
 - [Regras de cálculo](#regras-de-cálculo)
 - [Decisões de projeto](#decisões-de-projeto)
+- [Publicar em ~5 minutos](#publicar-em-5-minutos)
 - [Deploy gratuito (Vercel + Neon)](#deploy-gratuito-vercel--neon)
 - [Limitações conhecidas](#limitações-conhecidas)
 
@@ -352,6 +353,26 @@ As mesmas funções existem no frontend (`src/lib/calculos.ts`) para o modo offl
   tela, arrastar e soltar operável pelo teclado e contraste conferido nos dois temas.
 
 ---
+
+## Publicar em ~5 minutos
+
+O caminho mais curto, tudo gratuito:
+
+1. **Banco:** crie a conta em [neon.tech](https://neon.tech) → **Create project** (nome `treinos`)
+   → copie a *connection string* **com** `-pooler` e a **sem** `-pooler`.
+2. **Site + API:** clique no botão abaixo. O Render lê o [`render.yaml`](render.yaml),
+   cria o serviço e só pede a `DATABASE_URL` (cole a **com** `-pooler`) e a
+   `DIRECT_URL` (a **sem** `-pooler`).
+
+   [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/NicollasPetrin/acompanhamentod-de-treinos)
+
+3. Espere o build (3 a 5 minutos) e abra a URL que o Render mostrar. Entre com
+   `demo@treinos.app` / `Demo1234` ou crie sua conta.
+
+Esse caminho dá **uma URL só** para mandar aos amigos. O plano gratuito do Render
+hiberna depois de 15 minutos parado (a primeira visita demora ~40s). Se preferir
+que abra sempre rápido, use a Vercel, logo abaixo — são dois projetos e duas
+URLs, mas sem hibernação.
 
 ## Deploy gratuito (Vercel + Neon)
 
