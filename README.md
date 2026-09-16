@@ -103,6 +103,7 @@ escuro por padrão e funcionamento **offline**.
 
 ```
 .
+├── iniciar.bat / iniciar.sh    # sobe tudo com um clique (Windows / Linux-macOS)
 ├── backend/
 │   ├── prisma/
 │   │   ├── migrations/         # migrations versionadas
@@ -132,7 +133,20 @@ escuro por padrão e funcionamento **offline**.
 
 ## Como rodar localmente
 
-Pré-requisitos: **Node.js 20+** e npm.
+Pré-requisitos: **Node.js 20+** e npm ([nodejs.org](https://nodejs.org) — confira com `node -v`).
+
+### Jeito rápido (um clique)
+
+Na raiz do projeto:
+
+- **Windows:** dê dois cliques em **`iniciar.bat`**
+- **Linux/macOS:** rode **`./iniciar.sh`**
+
+O script instala as dependências, cria o banco, popula os exercícios e o usuário
+de demonstração e sobe a API e o site. Ao final, o navegador abre em
+**http://localhost:5173** — entre com `demo@treinos.app` / `Demo1234`.
+
+### Passo a passo (manual)
 
 ### 1. Backend
 
