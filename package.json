@@ -1,0 +1,17 @@
+{
+  "name": "treinos",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Site de acompanhamento de treinos de academia — API (backend/) e PWA (frontend/)",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "bash deploy/render-build.sh",
+    "start": "node backend/dist/server.js",
+    "test": "npm --prefix backend test",
+    "seed": "npm --prefix backend run seed",
+    "dev:api": "npm --prefix backend run dev",
+    "dev:site": "npm --prefix frontend run dev"
+  }
+}

@@ -17,6 +17,9 @@ services:
       # Configure o valor no painel do Render, em Environment.
       - key: DATABASE_URL
         sync: false
+      # Conexão direta do mesmo banco (sem o pool), usada para criar as tabelas
+      - key: DIRECT_URL
+        sync: false
       # Segredos gerados pelo Render — nunca ficam no repositório
       - key: JWT_ACCESS_SECRET
         generateValue: true
