@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import express from 'express';
 import cors from 'cors';
@@ -85,8 +86,14 @@ export function createApp({ servirFrontend = true }: OpcoesApp = {}) {
 
   if (servirFrontend) {
     // Site compilado servido pelo mesmo processo, com fallback para o index
-    // (rotas do React Router precisam devolver o index.html)
-    const frontendDist = path.resolve(process.cwd(), '..', 'frontend', 'dist');
+    // (rotas do React Router precisam devolver o index.html).
+    // Procura nos dois lugares possíveis: rodando de dentro de backend/ ou da
+    // raiz do repositório (hospedagens costumam usar uma ou outra).
+    const candidatos = [
+      path.resolve(process.cwd(), '..', 'frontend', 'dist'),
+      path.resolve(process.cwd(), 'frontend', 'dist'),
+    ];
+    const frontendDist = candidatos.find((caminho) => fs.existsSync(caminho)) ?? candidatos[0];
     app.use(express.static(frontendDist, { index: false, fallthrough: true }));
 
     app.use('/api', notFoundHandler);

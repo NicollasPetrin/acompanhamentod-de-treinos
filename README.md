@@ -105,6 +105,7 @@ escuro por padrão e funcionamento **offline**.
 
 ```
 .
+├── package.json                # scripts da raiz (build/start) para hospedagens Node
 ├── iniciar.bat / iniciar.sh    # sobe tudo com um clique (Windows / Linux-macOS)
 ├── render.yaml                 # blueprint de deploy alternativo (serviço único)
 ├── deploy/render-build.sh      # build de produção
@@ -177,6 +178,16 @@ O Vite já faz proxy de `/api` e `/uploads` para `http://localhost:3333`, então
 Acesse **http://localhost:5173** e entre com `demo@treinos.app` / `Demo1234`.
 
 ### Build de produção
+
+Na raiz do repositório:
+
+```bash
+npm run build    # compila o site e a API, cria as tabelas e popula os exercícios
+npm start        # sobe tudo em http://localhost:3333
+```
+
+O `npm run build` da raiz precisa de uma `DATABASE_URL` apontando para o banco de
+produção. Também é possível fazer manualmente:
 
 ```bash
 cd frontend && npm run build   # gera frontend/dist
