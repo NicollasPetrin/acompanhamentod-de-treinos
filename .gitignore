@@ -36,5 +36,6 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
-prisma/schema.producao.prisma
-.env.build-bak
+# Gerados pelo build de produção (ver deploy/render-build.sh)
+backend/prisma/schema.producao.prisma
+backend/.env.build-bak
