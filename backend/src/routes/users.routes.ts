@@ -23,9 +23,22 @@ const perfilSchema = z.object({
   photoUrl: z.string().nullable().optional(),
 });
 
+/** Cores de destaque disponíveis (a paleta vive no frontend, em lib/tema.ts). */
+export const CORES_DESTAQUE = [
+  'verde',
+  'rosa',
+  'roxo',
+  'azul',
+  'ciano',
+  'laranja',
+  'vermelho',
+  'amarelo',
+] as const;
+
 const preferenciasSchema = z.object({
   weightUnit: z.enum(['kg', 'lb']).optional(),
   theme: z.enum(['dark', 'light']).optional(),
+  accentColor: z.enum(CORES_DESTAQUE).optional(),
   trainingDays: z.array(z.enum(['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'])).optional(),
   defaultRestSec: z.number().int().min(15).max(600).optional(),
   remindersOn: z.boolean().optional(),

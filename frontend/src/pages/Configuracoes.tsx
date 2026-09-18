@@ -8,6 +8,7 @@ import { api, apiDelete, apiPatch, apiPost, lerSessao, urlDeMidia, BASE_API } fr
 import { useAuth } from '../lib/auth';
 import { DIAS_SEMANA, NIVEIS, OBJETIVOS, SEXOS } from '../lib/constantes';
 import { paraNumero } from '../lib/formato';
+import { CORES_DESTAQUE, amostraDaCor, ehCorValida, type CorDestaque } from '../lib/tema';
 import { comprimirImagem } from '../lib/imagem';
 import { notificacoesSuportadas, pedirPermissaoNotificacoes } from '../lib/lembretes';
 import type { Usuario } from '../lib/tipos';
@@ -72,7 +73,7 @@ export default function Configuracoes() {
     mutationFn: (dados: Record<string, unknown>) => apiPatch<Usuario>('/usuarios/eu/preferencias', dados),
     onSuccess: (novo) => {
       atualizarUsuario(novo);
-      aplicarTema(novo.theme);
+      aplicarTema(novo.theme, novo.accentColor);
     },
   });
 
@@ -305,6 +306,38 @@ export default function Configuracoes() {
           </div>
 
           <div>
+            <p className="rotulo flex items-center gap-2">
+              <Palette size={15} /> Cor de destaque
+            </p>
+            <div className="flex flex-wrap gap-2.5">
+              {(Object.keys(CORES_DESTAQUE) as CorDestaque[]).map((cor) => {
+                const escolhida = (ehCorValida(usuario.accentColor) ? usuario.accentColor : 'verde') === cor;
+                return (
+                  <button
+                    key={cor}
+                    onClick={() => salvarPreferencias.mutate({ accentColor: cor })}
+                    aria-pressed={escolhida}
+                    aria-label={`Cor ${CORES_DESTAQUE[cor].rotulo}`}
+                    title={CORES_DESTAQUE[cor].rotulo}
+                    className={`flex h-11 w-11 items-center justify-center rounded-full border-2 transition-transform active:scale-95 ${
+                      escolhida ? 'border-texto scale-110' : 'border-borda'
+                    }`}
+                  >
+                    <span
+                      className="h-7 w-7 rounded-full"
+                      style={{ backgroundColor: amostraDaCor(cor, usuario.theme) }}
+                      aria-hidden
+                    />
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-1.5 text-xs text-texto-suave">
+              Muda botões, gráficos e destaques do app inteiro.
+            </p>
+          </div>
+
+          <div>
             <p className="rotulo">Dias de treino</p>
             <div className="flex flex-wrap gap-2">
               {DIAS_SEMANA.map((dia) => {
@@ -315,7 +348,7 @@ export default function Configuracoes() {
                     onClick={() => alternarDia(dia.valor)}
                     aria-pressed={marcado}
                     className={`min-h-[44px] min-w-[52px] rounded-xl border px-3 text-sm font-medium transition-colors ${
-                      marcado ? 'border-primaria bg-primaria text-[#04140a]' : 'border-borda bg-superficie-2 text-texto-suave'
+                      marcado ? 'border-primaria bg-primaria text-sobre-primaria' : 'border-borda bg-superficie-2 text-texto-suave'
                     }`}
                   >
                     {dia.rotulo}

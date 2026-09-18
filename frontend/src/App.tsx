@@ -31,6 +31,8 @@ const Medidas = lazy(() => import('./pages/Medidas'));
 const Conquistas = lazy(() => import('./pages/Conquistas'));
 const Ferramentas = lazy(() => import('./pages/Ferramentas'));
 const Configuracoes = lazy(() => import('./pages/Configuracoes'));
+const Ajuda = lazy(() => import('./pages/Ajuda'));
+const AssistenteDeRotina = lazy(() => import('./pages/AssistenteDeRotina'));
 
 /** Só entra quem está autenticado; o destino é lembrado para voltar após o login. */
 function Protegida({ children }: { children: JSX.Element }) {
@@ -79,6 +81,8 @@ export default function App() {
       >
         <Route index element={<Inicio />} />
         <Route path="rotinas" element={<Rotinas />} />
+        {/* precisa vir antes de :id para "nova" não ser lida como um id */}
+        <Route path="rotinas/nova" element={<AssistenteDeRotina />} />
         <Route path="rotinas/:id" element={<EditorDeRotina />} />
         <Route path="treino" element={<Treino />} />
         <Route path="treino/:id" element={<Treino />} />
@@ -93,6 +97,7 @@ export default function App() {
         <Route path="conquistas" element={<Conquistas />} />
         <Route path="ferramentas" element={<Ferramentas />} />
         <Route path="configuracoes" element={<Configuracoes />} />
+        <Route path="ajuda" element={<Ajuda />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

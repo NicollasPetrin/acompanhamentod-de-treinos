@@ -166,6 +166,33 @@ describe('autenticação', () => {
     expect(resposta.status).toBe(200);
   });
 
+  it('guarda tema e cor de destaque nas preferências', async () => {
+    const sessao = await criarUsuario('cores@treinos.app');
+    const cabecalho = { Authorization: `Bearer ${sessao.accessToken}` };
+
+    const padrao = await request(app).get('/api/usuarios/eu').set(cabecalho);
+    expect(padrao.body.theme).toBe('dark');
+    expect(padrao.body.accentColor).toBe('verde');
+
+    const troca = await request(app)
+      .patch('/api/usuarios/eu/preferencias')
+      .set(cabecalho)
+      .send({ accentColor: 'rosa', theme: 'light' });
+    expect(troca.status).toBe(200);
+    expect(troca.body.accentColor).toBe('rosa');
+    expect(troca.body.theme).toBe('light');
+
+    // Cor fora da paleta é recusada
+    const invalida = await request(app)
+      .patch('/api/usuarios/eu/preferencias')
+      .set(cabecalho)
+      .send({ accentColor: 'arco-iris' });
+    expect(invalida.status).toBe(422);
+
+    const depois = await request(app).get('/api/usuarios/eu').set(cabecalho);
+    expect(depois.body.accentColor).toBe('rosa');
+  });
+
   it('exclui a conta apenas com senha e confirmação corretas', async () => {
     const sessao = await criarUsuario('excluir@treinos.app', 'SenhaForte123');
     const cabecalho = { Authorization: `Bearer ${sessao.accessToken}` };

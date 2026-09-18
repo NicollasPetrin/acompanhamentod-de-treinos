@@ -127,7 +127,7 @@ export default function CronometroDescanso({ segundos, aoTerminar, aoFechar }: P
           </button>
           <button
             onClick={aoFechar}
-            className="flex h-11 items-center gap-1.5 rounded-xl bg-primaria px-4 font-semibold text-[#04140a]"
+            className="flex h-11 items-center gap-1.5 rounded-xl bg-primaria px-4 font-semibold text-sobre-primaria"
           >
             <X size={18} />
             Pular

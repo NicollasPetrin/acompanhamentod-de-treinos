@@ -521,7 +521,7 @@ function LinhaDaSerie({ serie, numero, unidade, aoMudar, aoConcluir, aoRemover }
           className={clsx(
             'mx-auto flex h-11 w-11 items-center justify-center rounded-xl border transition-all active:scale-95',
             serie.completed
-              ? 'border-primaria bg-primaria text-[#04140a]'
+              ? 'border-primaria bg-primaria text-sobre-primaria'
               : 'border-borda bg-superficie-2 text-texto-suave',
           )}
         >

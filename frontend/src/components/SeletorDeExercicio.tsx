@@ -85,7 +85,7 @@ export default function SeletorDeExercicio({ aberto, aoFechar, aoEscolher, titul
               aria-pressed={aba === opcao.valor}
               className={`shrink-0 rounded-xl px-3.5 py-2 text-sm font-medium ${
                 aba === opcao.valor
-                  ? 'bg-primaria text-[#04140a]'
+                  ? 'bg-primaria text-sobre-primaria'
                   : 'border border-borda bg-superficie-2 text-texto-suave'
               }`}
             >

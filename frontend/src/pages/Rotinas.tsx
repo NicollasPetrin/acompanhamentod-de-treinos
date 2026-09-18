@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Archive, ArchiveRestore, Check, Copy, Link2, ListChecks, MoreVertical, Pencil, Plus, Share2, Trash2,
+  Archive, ArchiveRestore, Check, Copy, Link2, ListChecks, MoreVertical, Pencil, Share2, Trash2, Wand2,
 } from 'lucide-react';
 import { apiDelete, apiGet, apiPost } from '../lib/api';
 import { OBJETIVOS } from '../lib/constantes';
 import { plural } from '../lib/formato';
 import type { Rotina } from '../lib/tipos';
-import { Abas, AreaTexto, Botao, Campo, Cartao, Carregando, ConfirmarAcao, Distintivo, Modal, Selecao, Vazio } from '../components/ui';
+import { Abas, Botao, Cartao, Carregando, ConfirmarAcao, Distintivo, Modal, Vazio } from '../components/ui';
 import { useAvisos } from '../components/Notificacoes';
 
 interface Template {
@@ -23,11 +23,9 @@ interface Template {
 
 export default function Rotinas() {
   const queryClient = useQueryClient();
-  const { sucesso, erro: avisarErro } = useAvisos();
+  const { sucesso } = useAvisos();
 
   const [aba, setAba] = useState<'ativas' | 'arquivadas' | 'modelos'>('ativas');
-  const [criando, setCriando] = useState(false);
-  const [nova, setNova] = useState({ name: '', description: '', goal: 'hipertrofia' });
   const [excluindo, setExcluindo] = useState<Rotina | null>(null);
 
   const { data: rotinas, isLoading } = useQuery({
@@ -43,17 +41,6 @@ export default function Rotinas() {
   });
 
   const atualizarTudo = () => queryClient.invalidateQueries();
-
-  const criar = useMutation({
-    mutationFn: () => apiPost<Rotina>('/rotinas', nova),
-    onSuccess: async () => {
-      await atualizarTudo();
-      setCriando(false);
-      setNova({ name: '', description: '', goal: 'hipertrofia' });
-      sucesso('Rotina criada! Agora adicione os dias de treino.');
-    },
-    onError: () => avisarErro('Não foi possível criar a rotina'),
-  });
 
   const aplicarTemplate = useMutation({
     mutationFn: (slug: string) => apiPost<Rotina>(`/rotinas/templates/${slug}/aplicar`),
@@ -115,9 +102,9 @@ export default function Rotinas() {
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Rotinas</h1>
-        <Botao icone={<Plus size={18} />} onClick={() => setCriando(true)}>
-          Nova
-        </Botao>
+        <Link to="/app/rotinas/nova">
+          <Botao icone={<Wand2 size={18} />}>Criar rotina</Botao>
+        </Link>
       </div>
 
       <Abas
@@ -243,9 +230,9 @@ export default function Rotinas() {
           acao={
             aba !== 'arquivadas' ? (
               <div className="flex gap-2">
-                <Botao icone={<Plus size={18} />} onClick={() => setCriando(true)}>
-                  Criar rotina
-                </Botao>
+                <Link to="/app/rotinas/nova">
+                  <Botao icone={<Wand2 size={18} />}>Criar com o assistente</Botao>
+                </Link>
                 <Botao variante="secundario" onClick={() => setAba('modelos')}>
                   Ver modelos
                 </Botao>
@@ -254,45 +241,6 @@ export default function Rotinas() {
           }
         />
       )}
-
-      <Modal
-        aberto={criando}
-        aoFechar={() => setCriando(false)}
-        titulo="Nova rotina"
-        rodape={
-          <div className="flex gap-2">
-            <Botao variante="secundario" larguraTotal onClick={() => setCriando(false)}>
-              Cancelar
-            </Botao>
-            <Botao larguraTotal carregando={criar.isPending} disabled={nova.name.trim().length < 2} onClick={() => criar.mutate()}>
-              Criar
-            </Botao>
-          </div>
-        }
-      >
-        <div className="flex flex-col gap-4">
-          <Campo
-            rotulo="Nome"
-            autoFocus
-            placeholder="Ex.: ABC — hipertrofia"
-            value={nova.name}
-            onChange={(e) => setNova((n) => ({ ...n, name: e.target.value }))}
-          />
-          <AreaTexto
-            rotulo="Descrição (opcional)"
-            placeholder="Para que serve essa rotina?"
-            value={nova.description}
-            onChange={(e) => setNova((n) => ({ ...n, description: e.target.value }))}
-          />
-          <Selecao rotulo="Objetivo" value={nova.goal} onChange={(e) => setNova((n) => ({ ...n, goal: e.target.value }))}>
-            {Object.entries(OBJETIVOS).map(([valor, rotulo]) => (
-              <option key={valor} value={valor}>
-                {rotulo}
-              </option>
-            ))}
-          </Selecao>
-        </div>
-      </Modal>
 
       <ConfirmarAcao
         aberto={excluindo !== null}
