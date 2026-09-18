@@ -3,14 +3,14 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
-import { AuthProvider, aplicarTemaNoDocumento } from './lib/auth';
+import { AuthProvider } from './lib/auth';
+import { aplicarTema, temaSalvo } from './lib/tema';
 import { NotificacoesProvider } from './components/Notificacoes';
-import type { Tema } from './lib/tipos';
 import './index.css';
 
-// Tema salvo é aplicado antes da primeira pintura para não "piscar" branco
-const temaSalvo = (localStorage.getItem('treinos.tema') as Tema | null) ?? 'dark';
-aplicarTemaNoDocumento(temaSalvo);
+// Tema e cor salvos entram antes da primeira pintura, para não "piscar" branco
+const preferencias = temaSalvo();
+aplicarTema(preferencias.tema, preferencias.cor);
 
 const queryClient = new QueryClient({
   defaultOptions: {

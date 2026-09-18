@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPost, aoMudarSessao, lerSessao, listarContas, salvarSessao, trocarConta, ErroApi } from './api';
 import { apagarRascunho, limparCacheDaApi, sincronizarPendentes } from './offline';
+import { aplicarTema, ehCorValida, temaSalvo, type CorDestaque } from './tema';
 import type { Sessao, Tema, Usuario } from './tipos';
 
 interface ContextoAuth {
@@ -15,18 +16,19 @@ interface ContextoAuth {
   sair: () => Promise<void>;
   trocarPara: (userId: string) => void | Promise<void>;
   atualizarUsuario: (usuario: Usuario) => void;
-  aplicarTema: (tema: Tema) => void;
+  aplicarTema: (tema: Tema, cor?: string) => void;
 }
 
 const Contexto = createContext<ContextoAuth | null>(null);
 
-/** Aplica o tema no <html> — precisa acontecer antes da primeira pintura. */
-export function aplicarTemaNoDocumento(tema: Tema) {
-  document.documentElement.dataset.tema = tema;
-  document
-    .querySelector('meta[name="theme-color"]')
-    ?.setAttribute('content', tema === 'dark' ? '#0b0f14' : '#f6f8fa');
-  localStorage.setItem('treinos.tema', tema);
+/**
+ * Aplica as preferências visuais do usuário (tema + cor de destaque).
+ * Precisa acontecer antes da primeira pintura, por isso também é chamada em
+ * main.tsx com o que estiver salvo no aparelho.
+ */
+export function aplicarTemaNoDocumento(tema: Tema, cor?: string) {
+  const escolhida: CorDestaque = ehCorValida(cor) ? cor : temaSalvo().cor;
+  aplicarTema(tema, escolhida);
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -56,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const atual = await apiGet<Usuario>('/usuarios/eu');
         if (!ativo) return;
         setUsuario(atual);
-        aplicarTemaNoDocumento(atual.theme);
+        aplicarTemaNoDocumento(atual.theme, atual.accentColor);
         const sessao = lerSessao();
         if (sessao) salvarSessao({ ...sessao, usuario: atual });
         void sincronizarPendentes(atual.id);
@@ -84,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await limparDadosDaSessaoAnterior();
     salvarSessao(sessao);
     setUsuario(sessao.usuario);
-    aplicarTemaNoDocumento(sessao.usuario.theme);
+    aplicarTemaNoDocumento(sessao.usuario.theme, sessao.usuario.accentColor);
     void sincronizarPendentes(sessao.usuario.id);
   }, [limparDadosDaSessaoAnterior]);
 
@@ -93,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await limparDadosDaSessaoAnterior();
     salvarSessao(sessao);
     setUsuario(sessao.usuario);
-    aplicarTemaNoDocumento(sessao.usuario.theme);
+    aplicarTemaNoDocumento(sessao.usuario.theme, sessao.usuario.accentColor);
   }, [limparDadosDaSessaoAnterior]);
 
   const sair = useCallback(async () => {
@@ -112,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (restante) {
       salvarSessao(restante);
       setUsuario(restante.usuario);
-      aplicarTemaNoDocumento(restante.usuario.theme);
+      aplicarTemaNoDocumento(restante.usuario.theme, restante.usuario.accentColor);
     } else {
       setUsuario(null);
     }
@@ -124,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const conta = trocarConta(userId);
       if (!conta) return;
       await limparDadosDaSessaoAnterior();
-      aplicarTemaNoDocumento(conta.usuario.theme);
+      aplicarTemaNoDocumento(conta.usuario.theme, conta.usuario.accentColor);
       // Recarrega para garantir que nada da conta anterior sobreviva em memória
       window.location.assign('/app');
     },

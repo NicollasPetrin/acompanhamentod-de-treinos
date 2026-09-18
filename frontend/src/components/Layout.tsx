@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  BarChart3, CalendarDays, Dumbbell, Home, ListChecks, Menu, Play, Ruler, Settings,
-  Target, Trophy, Calculator, CloudOff, RefreshCw, LogOut, BookOpen,
+  BarChart3, CalendarDays, Dumbbell, GraduationCap, Home, ListChecks, Menu, Play, Ruler,
+  Settings, Target, Trophy, Calculator, CloudOff, RefreshCw, LogOut, BookOpen,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../lib/auth';
@@ -20,6 +20,7 @@ const PRINCIPAIS = [
 ];
 
 const SECUNDARIOS = [
+  { para: '/app/ajuda', rotulo: 'Como usar o app', icone: GraduationCap },
   { para: '/app/exercicios', rotulo: 'Biblioteca de exercícios', icone: BookOpen },
   { para: '/app/medidas', rotulo: 'Medidas corporais', icone: Ruler },
   { para: '/app/metas', rotulo: 'Metas', icone: Target },
@@ -169,7 +170,7 @@ export default function Layout() {
 
               <Link
                 to="/app/treino"
-                className="-mt-6 flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primaria text-[#04140a] shadow-lg shadow-primaria/25 active:scale-95 transition-transform"
+                className="-mt-6 flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primaria text-sobre-primaria shadow-lg shadow-primaria/25 active:scale-95 transition-transform"
                 aria-label="Iniciar treino"
               >
                 <Play size={26} fill="currentColor" aria-hidden />

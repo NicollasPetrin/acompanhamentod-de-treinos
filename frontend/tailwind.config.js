@@ -15,6 +15,7 @@ export default {
         'texto-suave': 'rgb(var(--cor-texto-suave) / <alpha-value>)',
         primaria: 'rgb(var(--cor-primaria) / <alpha-value>)',
         'primaria-escura': 'rgb(var(--cor-primaria-escura) / <alpha-value>)',
+        'sobre-primaria': 'rgb(var(--cor-primaria-contraste) / <alpha-value>)',
         perigo: 'rgb(var(--cor-perigo) / <alpha-value>)',
         alerta: 'rgb(var(--cor-alerta) / <alpha-value>)',
         info: 'rgb(var(--cor-info) / <alpha-value>)',

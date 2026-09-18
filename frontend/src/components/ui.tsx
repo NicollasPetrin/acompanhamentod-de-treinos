@@ -10,7 +10,7 @@ type Variante = 'primario' | 'secundario' | 'fantasma' | 'perigo';
 type Tamanho = 'sm' | 'md' | 'lg';
 
 const VARIANTES: Record<Variante, string> = {
-  primario: 'bg-primaria text-[#04140a] hover:bg-primaria-escura hover:text-white active:scale-[0.98] font-semibold',
+  primario: 'bg-primaria text-sobre-primaria hover:bg-primaria-escura hover:text-white active:scale-[0.98] font-semibold',
   secundario: 'bg-superficie-2 text-texto border border-borda hover:border-primaria/60 active:scale-[0.98]',
   fantasma: 'text-texto-suave hover:text-texto hover:bg-superficie-2',
   perigo: 'bg-perigo/15 text-perigo border border-perigo/40 hover:bg-perigo/25',
@@ -386,7 +386,7 @@ export function Abas<T extends string | number>({
           className={clsx(
             'shrink-0 rounded-xl px-4 py-2 text-sm font-medium transition-colors min-h-[40px]',
             ativa === aba.valor
-              ? 'bg-primaria text-[#04140a]'
+              ? 'bg-primaria text-sobre-primaria'
               : 'bg-superficie-2 text-texto-suave hover:text-texto border border-borda',
           )}
         >

@@ -38,6 +38,7 @@ model User {
   // Preferências
   weightUnit     String  @default("kg") // kg | lb
   theme          String  @default("dark") // dark | light
+  accentColor    String  @default("verde") // cor de destaque da interface
   trainingDays   String  @default("[]") // JSON: ["seg","qua","sex"]
   defaultRestSec Int     @default(90)
   remindersOn    Boolean @default(false)

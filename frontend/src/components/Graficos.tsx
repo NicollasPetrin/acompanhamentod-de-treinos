@@ -2,12 +2,35 @@ import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { EVENTO_TEMA } from '../lib/tema';
 
 /** Paleta dos gráficos — legível nos temas claro e escuro. */
-export const COR_PRIMARIA = '#22c55e';
 export const COR_INFO = '#60a5fa';
 export const COR_ALERTA = '#fbbf24';
+
+const lerVariavel = (nome: string, padrao: string) => {
+  if (typeof window === 'undefined') return padrao;
+  const valor = getComputedStyle(document.documentElement).getPropertyValue(nome).trim();
+  return valor ? `rgb(${valor})` : padrao;
+};
+
+/**
+ * Cor de destaque escolhida pelo usuário, lida da variável CSS. Recharts
+ * precisa de uma cor concreta, então acompanhamos as trocas de tema pelo
+ * evento disparado em lib/tema.ts.
+ */
+export function useCorPrimaria() {
+  const [cor, setCor] = useState(() => lerVariavel('--cor-primaria', '#22c55e'));
+
+  useEffect(() => {
+    const atualizar = () => setCor(lerVariavel('--cor-primaria', '#22c55e'));
+    window.addEventListener(EVENTO_TEMA, atualizar);
+    return () => window.removeEventListener(EVENTO_TEMA, atualizar);
+  }, []);
+
+  return cor;
+}
 
 const eixo = { fontSize: 11, fill: 'rgb(var(--cor-texto-suave))' };
 const grade = 'rgb(var(--cor-borda))';
@@ -60,11 +83,13 @@ export function GraficoLinha({
   dados,
   chaveX,
   chaveY,
-  cor = COR_PRIMARIA,
+  cor,
   altura = 220,
   formatador,
   formatarEixoX,
 }: BaseProps & { chaveY: string; cor?: string }) {
+  const corPadrao = useCorPrimaria();
+  const traco = cor ?? corPadrao;
   return (
     <ResponsiveContainer width="100%" height={altura}>
       <LineChart data={dados} margin={{ top: 8, right: 8, left: -6, bottom: 0 }}>
@@ -72,7 +97,7 @@ export function GraficoLinha({
         <XAxis dataKey={chaveX} tick={eixo} tickLine={false} axisLine={false} tickFormatter={formatarEixoX} />
         <YAxis tick={eixo} tickLine={false} axisLine={false} width={56} tickFormatter={compacto} />
         <Tooltip content={<DicaPersonalizada formatador={formatador} />} />
-        <Line type="monotone" dataKey={chaveY} stroke={cor} strokeWidth={2.5} dot={{ r: 3, fill: cor }} activeDot={{ r: 5 }} />
+        <Line type="monotone" dataKey={chaveY} stroke={traco} strokeWidth={2.5} dot={{ r: 3, fill: traco }} activeDot={{ r: 5 }} />
       </LineChart>
     </ResponsiveContainer>
   );
@@ -82,25 +107,27 @@ export function GraficoArea({
   dados,
   chaveX,
   chaveY,
-  cor = COR_PRIMARIA,
+  cor,
   altura = 220,
   formatador,
   formatarEixoX,
 }: BaseProps & { chaveY: string; cor?: string }) {
+  const corPadrao = useCorPrimaria();
+  const traco = cor ?? corPadrao;
   return (
     <ResponsiveContainer width="100%" height={altura}>
       <AreaChart data={dados} margin={{ top: 8, right: 8, left: -6, bottom: 0 }}>
         <defs>
           <linearGradient id={`gradiente-${chaveY}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor={cor} stopOpacity={0.35} />
-            <stop offset="95%" stopColor={cor} stopOpacity={0} />
+            <stop offset="5%" stopColor={traco} stopOpacity={0.35} />
+            <stop offset="95%" stopColor={traco} stopOpacity={0} />
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke={grade} vertical={false} />
         <XAxis dataKey={chaveX} tick={eixo} tickLine={false} axisLine={false} tickFormatter={formatarEixoX} />
         <YAxis tick={eixo} tickLine={false} axisLine={false} width={56} tickFormatter={compacto} />
         <Tooltip content={<DicaPersonalizada formatador={formatador} />} />
-        <Area type="monotone" dataKey={chaveY} stroke={cor} strokeWidth={2.5} fill={`url(#gradiente-${chaveY})`} />
+        <Area type="monotone" dataKey={chaveY} stroke={traco} strokeWidth={2.5} fill={`url(#gradiente-${chaveY})`} />
       </AreaChart>
     </ResponsiveContainer>
   );
@@ -110,12 +137,14 @@ export function GraficoBarras({
   dados,
   chaveX,
   chaveY,
-  cor = COR_PRIMARIA,
+  cor,
   altura = 220,
   formatador,
   formatarEixoX,
   cores,
 }: BaseProps & { chaveY: string; cor?: string; cores?: string[] }) {
+  const corPadrao = useCorPrimaria();
+  const preenchimento = cor ?? corPadrao;
   return (
     <ResponsiveContainer width="100%" height={altura}>
       <BarChart data={dados} margin={{ top: 8, right: 8, left: -6, bottom: 0 }}>
@@ -123,7 +152,7 @@ export function GraficoBarras({
         <XAxis dataKey={chaveX} tick={eixo} tickLine={false} axisLine={false} tickFormatter={formatarEixoX} />
         <YAxis tick={eixo} tickLine={false} axisLine={false} width={56} tickFormatter={compacto} />
         <Tooltip content={<DicaPersonalizada formatador={formatador} />} cursor={{ fill: 'rgb(var(--cor-superficie-2))' }} />
-        <Bar dataKey={chaveY} radius={[6, 6, 0, 0]} fill={cor}>
+        <Bar dataKey={chaveY} radius={[6, 6, 0, 0]} fill={preenchimento}>
           {cores?.map((c, i) => <Cell key={i} fill={c} />)}
         </Bar>
       </BarChart>

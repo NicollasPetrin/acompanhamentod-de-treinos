@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Activity, CalendarDays, Dumbbell, Flame, Play, Plus, Timer, TrendingUp } from 'lucide-react';
+import {
+  Activity, CalendarDays, Dumbbell, Flame, GraduationCap, Play, Timer, TrendingUp, Wand2, X,
+} from 'lucide-react';
 import { apiGet, urlDeMidia } from '../lib/api';
 import { useAuth, useUnidade } from '../lib/auth';
 import { formatarDataRelativa, formatarMinutos, formatarVolume, plural } from '../lib/formato';
@@ -15,10 +18,15 @@ const saudacao = () => {
   return 'Boa noite';
 };
 
+const CHAVE_BOAS_VINDAS = 'treinos.boas-vindas-dispensadas';
+
 export default function Inicio() {
   const { usuario } = useAuth();
   const unidade = useUnidade();
   const navegar = useNavigate();
+  const [boasVindasDispensadas, setBoasVindasDispensadas] = useState(
+    () => localStorage.getItem(CHAVE_BOAS_VINDAS) === 'sim',
+  );
 
   const { data: resumo, isLoading } = useQuery({
     queryKey: ['resumo-home'],
@@ -51,6 +59,40 @@ export default function Inicio() {
           </div>
         </Link>
       </header>
+
+      {/* Quem está começando vê o caminho das pedras antes de qualquer número */}
+      {!resumo?.rotinaAtiva && !resumo?.totalTreinos && !boasVindasDispensadas && (
+        <Cartao className="border-primaria/50 bg-primaria/5">
+          <div className="flex items-start justify-between gap-2">
+            <h2 className="font-semibold">Bem-vindo! Vamos montar seu primeiro treino?</h2>
+            <button
+              onClick={() => {
+                localStorage.setItem(CHAVE_BOAS_VINDAS, 'sim');
+                setBoasVindasDispensadas(true);
+              }}
+              className="shrink-0 rounded-lg p-1.5 text-texto-suave hover:bg-superficie-2 hover:text-texto"
+              aria-label="Dispensar boas-vindas"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <p className="mt-1 text-sm text-texto-suave">
+            O assistente pergunta quantos dias você treina e já deixa a ficha pronta — leva menos de um minuto.
+          </p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <Link to="/app/rotinas/nova" className="w-full">
+              <Botao larguraTotal icone={<Wand2 size={18} />}>
+                Criar minha rotina
+              </Botao>
+            </Link>
+            <Link to="/app/ajuda" className="w-full">
+              <Botao variante="secundario" larguraTotal icone={<GraduationCap size={18} />}>
+                Ver como funciona
+              </Botao>
+            </Link>
+          </div>
+        </Cartao>
+      )}
 
       {/* Treino em andamento tem prioridade sobre tudo */}
       {resumo?.treinoEmAndamento && (
@@ -130,8 +172,8 @@ export default function Inicio() {
             titulo="Nenhuma rotina ativa"
             descricao="Crie sua ficha de treino ou comece por um modelo pronto (ABC, Push/Pull/Legs, Full Body…)."
             acao={
-              <Link to="/app/rotinas">
-                <Botao icone={<Plus size={18} />}>Criar rotina</Botao>
+              <Link to="/app/rotinas/nova">
+                <Botao icone={<Wand2 size={18} />}>Criar com o assistente</Botao>
               </Link>
             }
           />

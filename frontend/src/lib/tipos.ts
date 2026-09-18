@@ -16,6 +16,7 @@ export interface Usuario {
   level: 'iniciante' | 'intermediario' | 'avancado' | null;
   weightUnit: Unidade;
   theme: Tema;
+  accentColor: string;
   trainingDays: string[];
   defaultRestSec: number;
   remindersOn: boolean;
