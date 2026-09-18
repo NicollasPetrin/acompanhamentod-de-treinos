@@ -2,14 +2,15 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Activity, CalendarDays, Dumbbell, Flame, GraduationCap, Play, Timer, TrendingUp, Wand2, X,
+  Activity, CalendarDays, Dumbbell, Flame, GraduationCap, Play, Timer, TrendingUp, Users, Wand2, X,
 } from 'lucide-react';
 import { apiGet, urlDeMidia } from '../lib/api';
 import { useAuth, useUnidade } from '../lib/auth';
 import { formatarDataRelativa, formatarMinutos, formatarVolume, plural } from '../lib/formato';
 import { GRUPOS_MUSCULARES } from '../lib/constantes';
-import type { Meta, ResumoHome } from '../lib/tipos';
+import type { Meta, ResumoHome, TreinoDoMural } from '../lib/tipos';
 import { Botao, Cartao, Carregando, Distintivo, Estatistica, TituloSecao, Vazio, BarraProgresso } from '../components/ui';
+import { TreinoNoMural } from '../components/Social';
 
 const saudacao = () => {
   const hora = new Date().getHours();
@@ -36,6 +37,12 @@ export default function Inicio() {
   const { data: metas } = useQuery({
     queryKey: ['metas', 'abertas'],
     queryFn: () => apiGet<Meta[]>('/metas?abertas=true'),
+  });
+
+  // Treinos que os amigos terminaram — só aparece para quem está em algum grupo
+  const { data: atividade } = useQuery({
+    queryKey: ['atividade-dos-grupos'],
+    queryFn: () => apiGet<TreinoDoMural[]>('/grupos/atividade?limite=3'),
   });
 
   if (isLoading) return <Carregando />;
@@ -91,6 +98,14 @@ export default function Inicio() {
               </Botao>
             </Link>
           </div>
+          <p className="mt-3 text-sm text-texto-suave">
+            Treina com os amigos?{' '}
+            <Link to="/app/grupos" className="inline-flex items-center gap-1 font-medium text-primaria">
+              <Users size={14} aria-hidden />
+              Crie um grupo
+            </Link>{' '}
+            e os treinos de todo mundo aparecem juntos.
+          </p>
         </Cartao>
       )}
 
@@ -189,6 +204,24 @@ export default function Inicio() {
           Treino livre (sem rotina)
         </Botao>
       </section>
+
+      {atividade && atividade.length > 0 && (
+        <section>
+          <TituloSecao
+            titulo="A galera treinou"
+            acao={
+              <Link to="/app/grupos" className="text-sm font-medium text-primaria">
+                Ver grupos
+              </Link>
+            }
+          />
+          <div className="flex flex-col gap-2">
+            {atividade.map((treino) => (
+              <TreinoNoMural key={treino.id} treino={treino} unidade={unidade} mostrarGrupo />
+            ))}
+          </div>
+        </section>
+      )}
 
       {metas && metas.length > 0 && (
         <section>

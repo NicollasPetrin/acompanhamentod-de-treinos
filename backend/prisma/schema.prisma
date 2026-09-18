@@ -43,6 +43,7 @@ model User {
   defaultRestSec Int     @default(90)
   remindersOn    Boolean @default(false)
   reminderTime   String? // "18:30"
+  shareWorkouts  Boolean @default(true) // mostrar treinos concluídos nos grupos
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -58,6 +59,12 @@ model User {
   personalRecords   PersonalRecord[]
   achievements      Achievement[]
   photos            Photo[]
+
+  // Social
+  pedidosEnviados   Friendship[]  @relation("PedidosEnviados")
+  pedidosRecebidos  Friendship[]  @relation("PedidosRecebidos")
+  gruposCriados     Group[]       @relation("GruposCriados")
+  grupos            GroupMember[]
 }
 
 model RefreshToken {
@@ -356,4 +363,63 @@ model Achievement {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, code])
+}
+
+// ---------------------------------------------------------------------------
+// Social: amigos e grupos de treino
+// ---------------------------------------------------------------------------
+
+/**
+ * Amizade entre duas contas. Uma única linha representa a relação inteira:
+ * enquanto `status` é "pendente" ela é um convite de `requester` para
+ * `addressee`; ao ser aceita, vale nos dois sentidos.
+ */
+model Friendship {
+  id          String    @id @default(cuid())
+  requesterId String
+  addresseeId String
+  status      String    @default("pendente") // pendente | aceita
+  createdAt   DateTime  @default(now())
+  respondedAt DateTime?
+
+  requester User @relation("PedidosEnviados", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee User @relation("PedidosRecebidos", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([addresseeId, status])
+  @@index([requesterId, status])
+}
+
+/** Grupo de treino: um punhado de amigos vendo os treinos uns dos outros. */
+model Group {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  inviteCode  String   @unique // código curto para entrar no grupo
+  ownerId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner   User          @relation("GruposCriados", fields: [ownerId], references: [id], onDelete: Cascade)
+  members GroupMember[]
+}
+
+/**
+ * Participação em um grupo. Convites ficam aqui mesmo, com status
+ * "convidado" — só quem está "ativo" aparece no mural e no ranking.
+ */
+model GroupMember {
+  id          String   @id @default(cuid())
+  groupId     String
+  userId      String
+  role        String   @default("membro") // dono | membro
+  status      String   @default("ativo") // ativo | convidado
+  invitedById String?
+  joinedAt    DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([userId, status])
 }

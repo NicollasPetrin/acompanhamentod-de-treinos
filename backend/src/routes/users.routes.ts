@@ -42,6 +42,7 @@ const preferenciasSchema = z.object({
   trainingDays: z.array(z.enum(['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'])).optional(),
   defaultRestSec: z.number().int().min(15).max(600).optional(),
   remindersOn: z.boolean().optional(),
+  shareWorkouts: z.boolean().optional(),
   reminderTime: z
     .string()
     .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use o formato HH:MM')

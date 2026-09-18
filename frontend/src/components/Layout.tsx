@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   BarChart3, CalendarDays, Dumbbell, GraduationCap, Home, ListChecks, Menu, Play, Ruler,
-  Settings, Target, Trophy, Calculator, CloudOff, RefreshCw, LogOut, BookOpen,
+  Settings, Target, Trophy, Calculator, CloudOff, RefreshCw, LogOut, BookOpen, Users, UserRound,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../lib/auth';
@@ -21,6 +21,8 @@ const PRINCIPAIS = [
 
 const SECUNDARIOS = [
   { para: '/app/ajuda', rotulo: 'Como usar o app', icone: GraduationCap },
+  { para: '/app/grupos', rotulo: 'Grupos de treino', icone: Users },
+  { para: '/app/amigos', rotulo: 'Amigos', icone: UserRound },
   { para: '/app/exercicios', rotulo: 'Biblioteca de exercícios', icone: BookOpen },
   { para: '/app/medidas', rotulo: 'Medidas corporais', icone: Ruler },
   { para: '/app/metas', rotulo: 'Metas', icone: Target },

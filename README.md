@@ -35,7 +35,8 @@ escuro por padrão e funcionamento **offline**.
 - Cadastro com validação de força de senha, login com "manter conectado", logout
 - Recuperação de senha por e-mail (token com expiração de 1 hora e uso único)
 - Perfil: foto, data de nascimento, sexo, altura, peso, objetivo e nível
-- Preferências: unidade (kg/lb), tema claro/escuro, dias de treino, descanso padrão
+- Preferências: unidade (kg/lb), tema claro/escuro, cor de destaque (8 paletas),
+  dias de treino, descanso padrão e compartilhamento de treinos nos grupos
 - Exclusão de conta com dupla confirmação (senha + digitar `EXCLUIR`)
 
 **Biblioteca de exercícios**
@@ -78,6 +79,21 @@ escuro por padrão e funcionamento **offline**.
   evolução de carga e de 1RM por exercício
 - Quadro de recordes pessoais, comparativo "este mês vs. mês passado"
 - Sequência de treinos (streak) e 14 conquistas
+
+**Amigos e grupos de treino**
+- Convite de amizade pelo e-mail da conta; se os dois se convidarem, a amizade
+  é aceita na hora
+- Grupos com nome, descrição e **código de convite de 6 letras** — dá para entrar
+  pelo código ou receber um convite direto de um amigo (que precisa aceitar)
+- **Mural automático**: todo treino concluído por um membro aparece no grupo
+  sozinho, com duração, volume, séries, grupos musculares e recordes. Nada de
+  "postar" — o mural é derivado dos treinos, então até um treino feito offline
+  aparece assim que sincroniza
+- Ranking da semana por número de treinos (desempate pelo volume)
+- Privacidade: o mural mostra só o resumo (nunca a carga série a série), começa
+  no dia em que cada pessoa entrou no grupo e pode ser desligado em
+  *Perfil e configurações → Treinos nos grupos* sem sair do grupo
+- Cartão "A galera treinou" na tela inicial, juntando todos os seus grupos
 
 **Medidas, metas e extras**
 - Medidas corporais (peso, % de gordura e 9 circunferências) com gráficos
@@ -256,7 +272,7 @@ como JSON em colunas de texto —, então o schema roda igual nos dois.
 
 ```bash
 cd backend
-npm test          # 61 testes
+npm test          # 89 testes
 ```
 
 Cobrem as regras críticas:
@@ -274,6 +290,11 @@ Cobrem as regras críticas:
 - **`tests/goals-routines.test.ts`** — progresso automático de metas (inclusive
   metas de emagrecimento), templates, rotina ativa única, compartilhamento por
   link e reordenação de exercícios
+- **`tests/social.test.ts`** — convite de amizade (inclusive o convite cruzado),
+  entrada em grupo por código, o treino aparecendo sozinho no mural, ranking da
+  semana, convite só para amigos, privacidade (treino anterior à entrada não
+  vaza, compartilhamento desligado some do mural) e autorização (quem não é do
+  grupo recebe 404)
 
 Os testes usam um SQLite separado (`prisma/test.db`), recriado a cada execução.
 
