@@ -23,6 +23,8 @@ import { goalsRouter } from './routes/goals.routes';
 import { toolsRouter } from './routes/tools.routes';
 import { dataRouter } from './routes/data.routes';
 import { photosRouter } from './routes/photos.routes';
+import { friendsRouter } from './routes/friends.routes';
+import { groupsRouter } from './routes/groups.routes';
 
 interface OpcoesApp {
   /**
@@ -100,6 +102,8 @@ export function createApp({ servirFrontend = true }: OpcoesApp = {}) {
   app.use('/api/ferramentas', toolsRouter);
   app.use('/api/dados', dataRouter);
   app.use('/api/fotos', photosRouter);
+  app.use('/api/amigos', friendsRouter);
+  app.use('/api/grupos', groupsRouter);
 
   if (servirFrontend) {
     // Site compilado servido pelo mesmo processo, com fallback para o index

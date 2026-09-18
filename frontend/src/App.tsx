@@ -33,6 +33,9 @@ const Ferramentas = lazy(() => import('./pages/Ferramentas'));
 const Configuracoes = lazy(() => import('./pages/Configuracoes'));
 const Ajuda = lazy(() => import('./pages/Ajuda'));
 const AssistenteDeRotina = lazy(() => import('./pages/AssistenteDeRotina'));
+const Amigos = lazy(() => import('./pages/Amigos'));
+const Grupos = lazy(() => import('./pages/Grupos'));
+const Grupo = lazy(() => import('./pages/Grupo'));
 
 /** Só entra quem está autenticado; o destino é lembrado para voltar após o login. */
 function Protegida({ children }: { children: JSX.Element }) {
@@ -97,6 +100,9 @@ export default function App() {
         <Route path="conquistas" element={<Conquistas />} />
         <Route path="ferramentas" element={<Ferramentas />} />
         <Route path="configuracoes" element={<Configuracoes />} />
+        <Route path="amigos" element={<Amigos />} />
+        <Route path="grupos" element={<Grupos />} />
+        <Route path="grupos/:id" element={<Grupo />} />
         <Route path="ajuda" element={<Ajuda />} />
       </Route>
 

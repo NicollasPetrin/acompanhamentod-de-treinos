@@ -59,6 +59,8 @@ export const openapiDocument = {
     { name: 'Metas', description: 'Metas com progresso automático' },
     { name: 'Ferramentas', description: 'Calculadoras de 1RM, anilhas e conversão de unidades' },
     { name: 'Dados', description: 'Exportação e importação (CSV/JSON)' },
+    { name: 'Amigos', description: 'Convites de amizade' },
+    { name: 'Grupos', description: 'Grupos de treino, mural automático e ranking' },
   ],
   components: {
     securitySchemes: {
@@ -827,6 +829,92 @@ export const openapiDocument = {
             origem: { type: 'string', enum: ['strong', 'hevy', 'auto'], default: 'auto' },
           },
         }),
+        responses: { 200: ok({ type: 'object' }) },
+      },
+    },
+    '/amigos': {
+      get: { tags: ['Amigos'], summary: 'Amigos e convites (recebidos e enviados)', responses: { 200: ok({ type: 'object' }) } },
+      post: {
+        tags: ['Amigos'],
+        summary: 'Convida alguém pelo e-mail (aceita na hora se o convite for mútuo)',
+        requestBody: jsonBody({ type: 'object', required: ['email'], properties: { email: { type: 'string', format: 'email' } } }),
+        responses: { 201: ok({ type: 'object' }), 404: respostaErro('Ninguém usa esse e-mail'), 409: respostaErro('Convite ou amizade já existe') },
+      },
+    },
+    '/amigos/{id}/aceitar': {
+      post: { tags: ['Amigos'], summary: 'Aceita um convite recebido', parameters: [param('id', 'ID do convite')], responses: { 200: ok({ type: 'object' }) } },
+    },
+    '/amigos/{id}': {
+      delete: {
+        tags: ['Amigos'],
+        summary: 'Recusa o convite, cancela o que você enviou ou desfaz a amizade',
+        parameters: [param('id', 'ID do convite/amizade')],
+        responses: { 200: ok({ type: 'object' }) },
+      },
+    },
+    '/grupos': {
+      get: { tags: ['Grupos'], summary: 'Grupos do usuário', responses: { 200: ok({ type: 'array', items: { type: 'object' } }) } },
+      post: {
+        tags: ['Grupos'],
+        summary: 'Cria um grupo (quem cria vira dono)',
+        requestBody: jsonBody({ type: 'object', required: ['name'], properties: { name: { type: 'string' }, description: { type: 'string', nullable: true } } }),
+        responses: { 201: ok({ type: 'object' }) },
+      },
+    },
+    '/grupos/entrar': {
+      post: {
+        tags: ['Grupos'],
+        summary: 'Entra num grupo pelo código de convite',
+        requestBody: jsonBody({ type: 'object', required: ['codigo'], properties: { codigo: { type: 'string', example: 'K7F3QP' } } }),
+        responses: { 201: ok({ type: 'object' }), 404: respostaErro('Código inválido') },
+      },
+    },
+    '/grupos/atividade': {
+      get: {
+        tags: ['Grupos'],
+        summary: 'Últimos treinos dos amigos, somando todos os grupos',
+        parameters: [param('limite', 'Quantidade (padrão 5)', 'integer', 'query')],
+        responses: { 200: ok({ type: 'array', items: { type: 'object' } }) },
+      },
+    },
+    '/grupos/{id}': {
+      get: { tags: ['Grupos'], summary: 'Grupo, ranking da semana e convidados', parameters: [param('id', 'ID')], responses: { 200: ok({ type: 'object' }) } },
+      patch: { tags: ['Grupos'], summary: 'Edita nome e descrição (dono)', parameters: [param('id', 'ID')], requestBody: jsonBody({ type: 'object' }), responses: { 200: ok({ type: 'object' }) } },
+      delete: { tags: ['Grupos'], summary: 'Exclui o grupo (dono)', parameters: [param('id', 'ID')], responses: { 200: ok({ type: 'object' }) } },
+    },
+    '/grupos/{id}/mural': {
+      get: {
+        tags: ['Grupos'],
+        summary: 'Treinos concluídos pelos membros, do mais recente ao mais antigo',
+        description: 'Derivado dos treinos: assim que alguém finaliza (ou sincroniza um treino feito offline), ele aparece aqui sozinho.',
+        parameters: [
+          param('id', 'ID do grupo'),
+          param('limite', 'Quantidade (padrão 20)', 'integer', 'query'),
+          param('antesDe', 'Pagina para trás a partir desta data', 'string', 'query'),
+        ],
+        responses: { 200: ok({ type: 'array', items: { type: 'object' } }) },
+      },
+    },
+    '/grupos/{id}/codigo': {
+      post: { tags: ['Grupos'], summary: 'Gera um código novo e invalida o anterior (dono)', parameters: [param('id', 'ID')], responses: { 200: ok({ type: 'object' }) } },
+    },
+    '/grupos/{id}/convidar': {
+      post: {
+        tags: ['Grupos'],
+        summary: 'Convida um amigo para o grupo',
+        parameters: [param('id', 'ID do grupo')],
+        requestBody: jsonBody({ type: 'object', required: ['userId'], properties: { userId: { type: 'string' } } }),
+        responses: { 201: ok({ type: 'object' }), 403: respostaErro('Só amigos podem ser convidados') },
+      },
+    },
+    '/grupos/{id}/aceitar': {
+      post: { tags: ['Grupos'], summary: 'Aceita o convite para o grupo', parameters: [param('id', 'ID')], responses: { 200: ok({ type: 'object' }) } },
+    },
+    '/grupos/{id}/membros/{userId}': {
+      delete: {
+        tags: ['Grupos'],
+        summary: 'Sai do grupo, ou o dono remove um membro',
+        parameters: [param('id', 'ID do grupo'), param('userId', 'ID da pessoa')],
         responses: { 200: ok({ type: 'object' }) },
       },
     },

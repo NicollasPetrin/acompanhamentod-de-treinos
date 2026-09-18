@@ -8,6 +8,9 @@ export const app: Express = createApp();
 
 /** Limpa todas as tabelas entre os testes (ordem respeita as chaves estrangeiras). */
 export async function limparBanco() {
+  await prisma.groupMember.deleteMany();
+  await prisma.group.deleteMany();
+  await prisma.friendship.deleteMany();
   await prisma.photo.deleteMany();
   await prisma.personalRecord.deleteMany();
   await prisma.workoutSet.deleteMany();

@@ -396,6 +396,23 @@ export default function Configuracoes() {
               </p>
             </div>
           )}
+
+          <div>
+            <p className="rotulo flex items-center gap-2">
+              <Users size={15} /> Treinos nos grupos
+            </p>
+            <Botao
+              variante={usuario.shareWorkouts ? 'primario' : 'secundario'}
+              onClick={() => salvarPreferencias.mutate({ shareWorkouts: !usuario.shareWorkouts })}
+            >
+              {usuario.shareWorkouts ? 'Compartilhando' : 'Não compartilhando'}
+            </Botao>
+            <p className="mt-1.5 text-xs text-texto-suave">
+              {usuario.shareWorkouts
+                ? 'Os treinos que você concluir aparecem no mural dos seus grupos. Carga série a série nunca é compartilhada.'
+                : 'Seus treinos não aparecem no mural dos grupos. Você continua nos grupos e vendo os treinos dos outros.'}
+            </p>
+          </div>
         </Cartao>
       </section>
 

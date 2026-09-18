@@ -21,6 +21,8 @@ export interface Usuario {
   defaultRestSec: number;
   remindersOn: boolean;
   reminderTime: string | null;
+  /** Mostrar treinos concluídos no mural dos grupos. */
+  shareWorkouts: boolean;
   createdAt: string;
 }
 
@@ -198,4 +200,79 @@ export interface ResumoHome {
 export interface RecordeDoExercicio {
   exercise: { id: string; name: string; muscleGroup: string };
   recordes: Partial<Record<TipoPr, { value: number; weight: number | null; reps: number | null; date: string }>>;
+}
+
+// --- Amigos e grupos de treino ---------------------------------------------
+
+export interface PessoaPublica {
+  id: string;
+  name: string;
+  photoUrl: string | null;
+}
+
+export interface Amizade {
+  id: string;
+  desde: string;
+  pessoa: PessoaPublica;
+}
+
+export interface ListaDeAmigos {
+  amigos: Amizade[];
+  recebidos: Amizade[];
+  enviados: Amizade[];
+}
+
+export interface GrupoResumido {
+  id: string;
+  name: string;
+  description: string | null;
+  inviteCode: string | null;
+  papel: 'dono' | 'membro';
+  status: 'ativo' | 'convidado';
+  dono: PessoaPublica;
+  membros: number;
+  treinosNaSemana: number;
+  ultimoTreino: { nome: string; pessoa: string; data: string } | null;
+}
+
+export interface LinhaDoRanking {
+  pessoa: PessoaPublica;
+  papel: 'dono' | 'membro';
+  desde: string;
+  treinos: number;
+  volume: number;
+  series: number;
+  minutos: number;
+  ultimoTreino: string | null;
+  compartilhando: boolean;
+}
+
+export interface Grupo {
+  id: string;
+  name: string;
+  description: string | null;
+  createdAt: string;
+  dono: PessoaPublica;
+  papel: 'dono' | 'membro';
+  status: 'ativo' | 'convidado';
+  inviteCode: string | null;
+  ranking: LinhaDoRanking[];
+  convidados: PessoaPublica[];
+  semanaComecaEm: string;
+}
+
+export interface TreinoDoMural {
+  id: string;
+  nome: string;
+  pessoa: PessoaPublica;
+  data: string;
+  duracaoSec: number | null;
+  volume: number;
+  series: number;
+  repeticoes: number;
+  exercicios: number;
+  gruposMusculares: string[];
+  recordes: number;
+  /** Presente só na atividade da tela inicial, que junta todos os grupos. */
+  grupo?: { id: string; name: string };
 }

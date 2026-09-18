@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
   BookOpen, Calculator, ChevronDown, Dumbbell, ListChecks, Play, Ruler, Smartphone,
-  Target, Timer, TrendingUp, Trophy, Users, WifiOff,
+  Target, Timer, TrendingUp, Trophy, Users, UsersRound, WifiOff,
 } from 'lucide-react';
 import { Botao, Cartao, TituloSecao } from '../components/ui';
 
@@ -97,6 +97,20 @@ const TUTORIAIS: Tutorial[] = [
       <>Sem sinal na academia? Pode registrar normalmente: o treino fica salvo no aparelho.</>,
       <>Quando a conexão voltar, o envio acontece sozinho — uma faixa no topo avisa quando há treinos esperando.</>,
     ],
+  },
+  {
+    id: 'amigos-e-grupos',
+    icone: UsersRound,
+    titulo: 'Amigos e grupos de treino',
+    resumo: 'Ver o treino da galera sem precisar mandar print no zap.',
+    passos: [
+      <>Em <strong>Amigos</strong>, convide quem treina com você pelo <strong>e-mail da conta</strong> dele. A pessoa aceita e pronto.</>,
+      <>Em <strong>Grupos de treino</strong>, toque em <strong>Criar grupo</strong> e dê um nome (&quot;Galera da academia&quot;, &quot;Segunda a sexta&quot;…).</>,
+      <>O grupo ganha um <strong>código de 6 letras</strong>. Mande para os amigos: quem tiver o código entra. Amigos do app dá para convidar direto, sem código.</>,
+      <>A partir daí não precisa fazer mais nada: <strong>todo treino que alguém finalizar aparece sozinho no mural do grupo</strong>, com duração, volume, grupos musculares e recordes.</>,
+      <>A aba <strong>Ranking da semana</strong> mostra quem treinou mais — a contagem zera toda segunda-feira.</>,
+    ],
+    dica: 'O mural mostra o resumo, nunca a carga série a série. E se quiser pausar, é só desligar "Treinos nos grupos" em Perfil e configurações — você continua vendo os outros.',
   },
   {
     id: 'dupla',
@@ -216,6 +230,16 @@ export default function Ajuda() {
           <Link to="/app/metas">
             <Botao variante="secundario" larguraTotal icone={<Target size={18} />}>
               Metas
+            </Botao>
+          </Link>
+          <Link to="/app/grupos">
+            <Botao variante="secundario" larguraTotal icone={<UsersRound size={18} />}>
+              Grupos
+            </Botao>
+          </Link>
+          <Link to="/app/amigos">
+            <Botao variante="secundario" larguraTotal icone={<Users size={18} />}>
+              Amigos
             </Botao>
           </Link>
         </div>
