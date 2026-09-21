@@ -289,6 +289,9 @@ export default function Grupo() {
                       <p className="truncate font-semibold">
                         {linha.pessoa.id === usuario?.id ? 'Você' : linha.pessoa.name}
                       </p>
+                      {linha.pessoa.id !== usuario?.id && linha.pessoa.username && (
+                        <span className="truncate text-xs text-texto-suave">@{linha.pessoa.username}</span>
+                      )}
                       {linha.papel === 'dono' && <Distintivo>dono</Distintivo>}
                       {!linha.compartilhando && (
                         <Distintivo cor="neutro">
@@ -393,7 +396,10 @@ export default function Grupo() {
             {convidaveis.map((amigo) => (
               <div key={amigo.id} className="flex items-center gap-3 rounded-xl border border-borda p-3">
                 <Avatar pessoa={amigo.pessoa} tamanho="sm" />
-                <p className="min-w-0 flex-1 truncate font-medium">{amigo.pessoa.name}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">{amigo.pessoa.name}</p>
+                  <p className="truncate text-xs text-texto-suave">@{amigo.pessoa.username}</p>
+                </div>
                 <Botao
                   tamanho="sm"
                   onClick={() => convidar.mutate(amigo.pessoa.id)}

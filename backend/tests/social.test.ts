@@ -16,9 +16,18 @@ async function treinar(sessao: Sessao, exerciseId: string, peso = 60) {
   return request(app).post(`/api/treinos/${inicio.body.id}/finalizar`).set(auth(sessao)).send({});
 }
 
+/** Nome de usuário gerado no cadastro. */
+async function usernameDe(sessao: Sessao) {
+  const eu = await request(app).get('/api/usuarios/eu').set(auth(sessao));
+  return eu.body.username as string;
+}
+
 /** Deixa duas contas amigas, aceitando o convite. */
 async function virarAmigos(a: Sessao, b: Sessao) {
-  const convite = await request(app).post('/api/amigos').set(auth(a)).send({ email: b.usuario.email });
+  const convite = await request(app)
+    .post('/api/amigos')
+    .set(auth(a))
+    .send({ username: await usernameDe(b) });
   await request(app).post(`/api/amigos/${convite.body.id}/aceitar`).set(auth(b)).send({});
   return convite.body.id as string;
 }
@@ -29,12 +38,12 @@ describe('amigos', () => {
 
   beforeEach(async () => {
     await limparBanco();
-    ana = await criarUsuario('ana@treinos.app', 'SenhaForte123', 'Ana');
-    bruno = await criarUsuario('bruno@treinos.app', 'SenhaForte123', 'Bruno');
+    ana = await criarUsuario('ana@treinos.app', 'SenhaForte123', 'Ana', 'ana');
+    bruno = await criarUsuario('bruno@treinos.app', 'SenhaForte123', 'Bruno', 'bruno');
   });
 
-  it('convida pelo e-mail, o outro aceita e os dois viram amigos', async () => {
-    const convite = await request(app).post('/api/amigos').set(auth(ana)).send({ email: 'bruno@treinos.app' });
+  it('convida pelo nome de usuário, o outro aceita e os dois viram amigos', async () => {
+    const convite = await request(app).post('/api/amigos').set(auth(ana)).send({ username: 'bruno' });
     expect(convite.status).toBe(201);
 
     const pendentes = await request(app).get('/api/amigos').set(auth(bruno));
@@ -52,8 +61,8 @@ describe('amigos', () => {
   });
 
   it('convite cruzado vira amizade na hora, sem ninguém precisar aceitar', async () => {
-    await request(app).post('/api/amigos').set(auth(ana)).send({ email: 'bruno@treinos.app' });
-    const resposta = await request(app).post('/api/amigos').set(auth(bruno)).send({ email: 'ana@treinos.app' });
+    await request(app).post('/api/amigos').set(auth(ana)).send({ username: 'bruno' });
+    const resposta = await request(app).post('/api/amigos').set(auth(bruno)).send({ username: 'ana' });
 
     expect(resposta.status).toBe(200);
     expect(resposta.body.status).toBe('aceita');
@@ -61,21 +70,27 @@ describe('amigos', () => {
     expect(dela.body.amigos).toHaveLength(1);
   });
 
-  it('não deixa convidar a si mesmo, nem repetir convite, nem inventar e-mail', async () => {
-    const proprio = await request(app).post('/api/amigos').set(auth(ana)).send({ email: 'ana@treinos.app' });
+  it('não deixa convidar a si mesmo, nem repetir convite, nem inventar apelido', async () => {
+    const proprio = await request(app).post('/api/amigos').set(auth(ana)).send({ username: 'ana' });
     expect(proprio.status).toBe(400);
 
-    const inexistente = await request(app).post('/api/amigos').set(auth(ana)).send({ email: 'ninguem@treinos.app' });
+    const inexistente = await request(app).post('/api/amigos').set(auth(ana)).send({ username: 'ninguem' });
     expect(inexistente.status).toBe(404);
 
-    await request(app).post('/api/amigos').set(auth(ana)).send({ email: 'bruno@treinos.app' });
-    const repetido = await request(app).post('/api/amigos').set(auth(ana)).send({ email: 'bruno@treinos.app' });
+    await request(app).post('/api/amigos').set(auth(ana)).send({ username: 'bruno' });
+    const repetido = await request(app).post('/api/amigos').set(auth(ana)).send({ username: 'bruno' });
     expect(repetido.status).toBe(409);
   });
 
+  it('acha a pessoa mesmo com @, maiúsculas ou acento digitados', async () => {
+    const comArroba = await request(app).post('/api/amigos').set(auth(ana)).send({ username: '@BRUNO' });
+    expect(comArroba.status).toBe(201);
+    expect(comArroba.body.pessoa.name).toBe('Bruno');
+  });
+
   it('só o destinatário aceita o convite', async () => {
-    const carla = await criarUsuario('carla@treinos.app', 'SenhaForte123', 'Carla');
-    const convite = await request(app).post('/api/amigos').set(auth(ana)).send({ email: 'bruno@treinos.app' });
+    const carla = await criarUsuario('carla@treinos.app', 'SenhaForte123', 'Carla', 'carla');
+    const convite = await request(app).post('/api/amigos').set(auth(ana)).send({ username: 'bruno' });
 
     const intruso = await request(app).post(`/api/amigos/${convite.body.id}/aceitar`).set(auth(carla)).send({});
     expect(intruso.status).toBe(403);
@@ -98,8 +113,8 @@ describe('grupos de treino', () => {
 
   beforeEach(async () => {
     await limparBanco();
-    ana = await criarUsuario('ana@treinos.app', 'SenhaForte123', 'Ana');
-    bruno = await criarUsuario('bruno@treinos.app', 'SenhaForte123', 'Bruno');
+    ana = await criarUsuario('ana@treinos.app', 'SenhaForte123', 'Ana', 'ana');
+    bruno = await criarUsuario('bruno@treinos.app', 'SenhaForte123', 'Bruno', 'bruno');
     exercicioId = (await criarExercicio('Supino reto com barra')).id;
   });
 
@@ -187,7 +202,7 @@ describe('grupos de treino', () => {
 
   it('quem não é do grupo não vê nada dele', async () => {
     const grupo = await grupoComOsDois();
-    const estranha = await criarUsuario('carla@treinos.app', 'SenhaForte123', 'Carla');
+    const estranha = await criarUsuario('carla@treinos.app', 'SenhaForte123', 'Carla', 'carla');
 
     const detalhe = await request(app).get(`/api/grupos/${grupo.id}`).set(auth(estranha));
     const mural = await request(app).get(`/api/grupos/${grupo.id}/mural`).set(auth(estranha));
@@ -197,7 +212,7 @@ describe('grupos de treino', () => {
 
   it('convida um amigo, que só entra depois de aceitar', async () => {
     const grupo = await grupoComOsDois();
-    const carla = await criarUsuario('carla@treinos.app', 'SenhaForte123', 'Carla');
+    const carla = await criarUsuario('carla@treinos.app', 'SenhaForte123', 'Carla', 'carla');
 
     const semAmizade = await request(app)
       .post(`/api/grupos/${grupo.id}/convidar`)

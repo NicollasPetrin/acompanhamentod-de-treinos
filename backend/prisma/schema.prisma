@@ -24,6 +24,10 @@ model User {
   id           String  @id @default(cuid())
   name         String
   email        String  @unique
+  /// Apelido público (sem @), sempre em minúsculas — é por ele que os amigos
+  /// se encontram. Opcional no banco só para contas antigas, que ganham um
+  /// gerado automaticamente no primeiro acesso.
+  username     String? @unique
   passwordHash String
   photoUrl     String?
 

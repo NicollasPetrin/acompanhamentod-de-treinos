@@ -2,18 +2,21 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { requireAuth, userId } from '../middleware/auth';
-import { validate } from '../middleware/validate';
+import { getQuery, validate } from '../middleware/validate';
 import { serializeUser } from '../lib/serialize';
 import { toJson } from '../lib/json';
 import { badRequest, notFound } from '../lib/errors';
 import { checkPasswordStrength, comparePassword, hashPassword } from '../lib/password';
 import { uploadImagem, urlDaFoto } from '../lib/upload';
+import { gerarUsernameUnico, normalizarUsername, problemaNoUsername, usernameEmUso } from '../lib/username';
+import { AppError } from '../lib/errors';
 
 export const usersRouter = Router();
 usersRouter.use(requireAuth);
 
 const perfilSchema = z.object({
   name: z.string().trim().min(2).max(80).optional(),
+  username: z.string().trim().max(30).optional(),
   birthDate: z.coerce.date().nullable().optional(),
   sex: z.enum(['masculino', 'feminino', 'outro']).nullable().optional(),
   heightCm: z.number().min(80).max(260).nullable().optional(),
@@ -50,29 +53,81 @@ const preferenciasSchema = z.object({
     .optional(),
 });
 
-/** GET /api/usuarios/eu — dados do usuário autenticado. */
+/**
+ * GET /api/usuarios/eu — dados do usuário autenticado.
+ *
+ * Contas criadas antes do nome de usuário existir ganham um aqui, na primeira
+ * vez que abrem o app — assim ninguém fica sem apelido para os amigos acharem.
+ */
 usersRouter.get('/eu', async (req, res, next) => {
   try {
-    const user = await prisma.user.findUnique({ where: { id: userId(req) } });
+    let user = await prisma.user.findUnique({ where: { id: userId(req) } });
     if (!user) throw notFound('Usuário não encontrado');
+
+    if (!user.username) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { username: await gerarUsernameUnico(user.name, user.email) },
+      });
+    }
+
     res.json(serializeUser(user));
   } catch (err) {
     next(err);
   }
 });
 
-/** PATCH /api/usuarios/eu — atualiza dados de perfil. */
+/** PATCH /api/usuarios/eu — atualiza dados de perfil (inclusive o apelido). */
 usersRouter.patch('/eu', validate(perfilSchema), async (req, res, next) => {
   try {
+    const uid = userId(req);
+    const { username, ...perfil } = req.body as z.infer<typeof perfilSchema>;
+
+    let apelido: string | undefined;
+    if (username !== undefined) {
+      apelido = normalizarUsername(username);
+      const problema = problemaNoUsername(apelido);
+      if (problema) throw badRequest(problema, { username: [problema] });
+      if (await usernameEmUso(apelido, uid)) {
+        throw new AppError(409, 'Esse nome de usuário já está em uso', 'username_em_uso');
+      }
+    }
+
     const user = await prisma.user.update({
-      where: { id: userId(req) },
-      data: req.body as z.infer<typeof perfilSchema>,
+      where: { id: uid },
+      data: { ...perfil, ...(apelido ? { username: apelido } : {}) },
     });
     res.json(serializeUser(user));
   } catch (err) {
     next(err);
   }
 });
+
+/**
+ * GET /api/usuarios/username-livre?username=fulano
+ * Diz se o apelido está disponível enquanto a pessoa digita.
+ */
+usersRouter.get(
+  '/username-livre',
+  validate(z.object({ username: z.string().trim().max(30) }), 'query'),
+  async (req, res, next) => {
+    try {
+      const { username } = getQuery<{ username: string }>(req);
+      const apelido = normalizarUsername(username);
+      const problema = problemaNoUsername(apelido);
+      if (problema) return res.json({ username: apelido, livre: false, motivo: problema });
+
+      const emUso = await usernameEmUso(apelido, userId(req));
+      res.json({
+        username: apelido,
+        livre: !emUso,
+        motivo: emUso ? 'Esse nome de usuário já está em uso' : null,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 /** PATCH /api/usuarios/eu/preferencias — unidade, tema, dias de treino, descanso padrão. */
 usersRouter.patch('/eu/preferencias', validate(preferenciasSchema), async (req, res, next) => {

@@ -11,6 +11,7 @@ import { validate } from '../middleware/validate';
 import { requireAuth, userId } from '../middleware/auth';
 import { serializeUser } from '../lib/serialize';
 import { toJson } from '../lib/json';
+import { gerarUsernameUnico, normalizarUsername, problemaNoUsername, usernameEmUso } from '../lib/username';
 
 export const authRouter = Router();
 
@@ -28,6 +29,8 @@ const senhaSchema = z.string().min(8, 'A senha deve ter pelo menos 8 caracteres'
 const registrarSchema = z.object({
   name: z.string().trim().min(2, 'Informe seu nome').max(80),
   email: z.string().trim().toLowerCase().email('E-mail inválido'),
+  /** Opcional: quem não escolher recebe um sugerido a partir do nome. */
+  username: z.string().trim().max(30).optional(),
   password: senhaSchema,
 });
 
@@ -54,7 +57,7 @@ async function emitirTokens(user: { id: string; email: string }, rememberMe: boo
  */
 authRouter.post('/registrar', limiteTentativas, validate(registrarSchema), async (req, res, next) => {
   try {
-    const { name, email, password } = req.body as z.infer<typeof registrarSchema>;
+    const { name, email, username, password } = req.body as z.infer<typeof registrarSchema>;
 
     const forca = checkPasswordStrength(password);
     if (!forca.valid) throw badRequest('Senha fraca', forca.problemas);
@@ -62,10 +65,23 @@ authRouter.post('/registrar', limiteTentativas, validate(registrarSchema), async
     const existente = await prisma.user.findUnique({ where: { email } });
     if (existente) throw new AppError(409, 'Este e-mail já está cadastrado', 'email_em_uso');
 
+    let apelido: string;
+    if (username) {
+      apelido = normalizarUsername(username);
+      const problema = problemaNoUsername(apelido);
+      if (problema) throw badRequest(problema, { username: [problema] });
+      if (await usernameEmUso(apelido)) {
+        throw new AppError(409, 'Esse nome de usuário já está em uso', 'username_em_uso');
+      }
+    } else {
+      apelido = await gerarUsernameUnico(name, email);
+    }
+
     const user = await prisma.user.create({
       data: {
         name,
         email,
+        username: apelido,
         passwordHash: await hashPassword(password),
         trainingDays: toJson(['seg', 'ter', 'qua', 'qui', 'sex']),
       },

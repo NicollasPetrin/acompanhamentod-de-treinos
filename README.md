@@ -81,8 +81,10 @@ escuro por padrão e funcionamento **offline**.
 - Sequência de treinos (streak) e 14 conquistas
 
 **Amigos e grupos de treino**
-- Convite de amizade pelo e-mail da conta; se os dois se convidarem, a amizade
-  é aceita na hora
+- **Nome de usuário** (`@fulano`) gerado no cadastro a partir do nome e trocável
+  em Perfil e configurações, com verificação de disponibilidade enquanto digita
+- Convite de amizade pelo nome de usuário — com ou sem `@`, maiúsculas e acentos
+  são normalizados; se os dois se convidarem, a amizade é aceita na hora
 - Grupos com nome, descrição e **código de convite de 6 letras** — dá para entrar
   pelo código ou receber um convite direto de um amigo (que precisa aceitar)
 - **Mural automático**: todo treino concluído por um membro aparece no grupo
@@ -272,7 +274,7 @@ como JSON em colunas de texto —, então o schema roda igual nos dois.
 
 ```bash
 cd backend
-npm test          # 89 testes
+npm test          # 101 testes
 ```
 
 Cobrem as regras críticas:
@@ -290,6 +292,10 @@ Cobrem as regras críticas:
 - **`tests/goals-routines.test.ts`** — progresso automático de metas (inclusive
   metas de emagrecimento), templates, rotina ativa única, compartilhamento por
   link e reordenação de exercícios
+- **`tests/username.test.ts`** — apelido sugerido a partir do nome, desempate por
+  número quando repete, normalização de `@`/maiúsculas, formatos recusados,
+  troca pelo perfil sem roubar o de outra pessoa, consulta de disponibilidade e
+  preenchimento automático de contas antigas
 - **`tests/social.test.ts`** — convite de amizade (inclusive o convite cruzado),
   entrada em grupo por código, o treino aparecendo sozinho no mural, ranking da
   semana, convite só para amigos, privacidade (treino anterior à entrada não

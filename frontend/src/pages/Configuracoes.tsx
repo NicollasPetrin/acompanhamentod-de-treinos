@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Bell, Camera, Download, LogOut, Moon, Palette, Ruler, Save, Sun, Trash2, Upload, User, Users, KeyRound, FileJson,
 } from 'lucide-react';
-import { api, apiDelete, apiPatch, apiPost, lerSessao, urlDeMidia, BASE_API } from '../lib/api';
+import { api, apiDelete, apiGet, apiPatch, apiPost, lerSessao, urlDeMidia, BASE_API, ErroApi } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { DIAS_SEMANA, NIVEIS, OBJETIVOS, SEXOS } from '../lib/constantes';
 import { paraNumero } from '../lib/formato';
@@ -24,6 +24,7 @@ export default function Configuracoes() {
 
   const [perfil, setPerfil] = useState({
     name: '',
+    username: '',
     birthDate: '',
     sex: '',
     heightCm: '',
@@ -42,6 +43,7 @@ export default function Configuracoes() {
     if (!usuario) return;
     setPerfil({
       name: usuario.name,
+      username: usuario.username ?? '',
       birthDate: usuario.birthDate ? usuario.birthDate.slice(0, 10) : '',
       sex: usuario.sex ?? '',
       heightCm: usuario.heightCm ? String(usuario.heightCm) : '',
@@ -55,6 +57,8 @@ export default function Configuracoes() {
     mutationFn: () =>
       apiPatch<Usuario>('/usuarios/eu', {
         name: perfil.name.trim(),
+        // só vai quando a pessoa realmente mexeu no apelido
+        ...(perfil.username.trim() ? { username: perfil.username.trim() } : {}),
         birthDate: perfil.birthDate ? new Date(`${perfil.birthDate}T12:00:00`).toISOString() : null,
         sex: perfil.sex || null,
         heightCm: perfil.heightCm ? Number(perfil.heightCm) : null,
@@ -66,8 +70,31 @@ export default function Configuracoes() {
       atualizarUsuario(novo);
       sucesso('Perfil atualizado');
     },
-    onError: () => avisarErro('Não foi possível salvar o perfil'),
+    onError: (e) => avisarErro(e instanceof ErroApi ? e.message : 'Não foi possível salvar o perfil'),
   });
+
+  // Pergunta ao servidor se o apelido está livre, com uma pausa para não
+  // disparar uma consulta por tecla digitada.
+  const [apelidoLivre, setApelidoLivre] = useState<{ livre: boolean; motivo: string | null } | null>(null);
+  useEffect(() => {
+    const apelido = perfil.username.trim().replace(/^@+/, '');
+    if (!apelido || apelido === usuario?.username) {
+      setApelidoLivre(null);
+      return;
+    }
+    const tempo = setTimeout(async () => {
+      try {
+        setApelidoLivre(
+          await apiGet<{ livre: boolean; motivo: string | null }>(
+            `/usuarios/username-livre?username=${encodeURIComponent(apelido)}`,
+          ),
+        );
+      } catch {
+        setApelidoLivre(null);
+      }
+    }, 400);
+    return () => clearTimeout(tempo);
+  }, [perfil.username, usuario?.username]);
 
   const salvarPreferencias = useMutation({
     mutationFn: (dados: Record<string, unknown>) => apiPatch<Usuario>('/usuarios/eu/preferencias', dados),
@@ -198,6 +225,22 @@ export default function Configuracoes() {
 
           <Campo rotulo="Nome" value={perfil.name} onChange={(e) => setPerfil((p) => ({ ...p, name: e.target.value }))} />
 
+          <Campo
+            rotulo="Nome de usuário"
+            name="nome-de-usuario"
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            value={perfil.username}
+            onChange={(e) => setPerfil((p) => ({ ...p, username: e.target.value }))}
+            erro={apelidoLivre && !apelidoLivre.livre ? apelidoLivre.motivo ?? 'Indisponível' : undefined}
+            dica={
+              apelidoLivre?.livre
+                ? `@${perfil.username.trim().replace(/^@+/, '').toLowerCase()} está livre`
+                : 'É por ele que seus amigos te adicionam. Letras, números, ponto e _.'
+            }
+          />
+
           <div className="grid grid-cols-2 gap-3">
             <Campo
               rotulo="Data de nascimento"
@@ -253,7 +296,12 @@ export default function Configuracoes() {
             </Selecao>
           </div>
 
-          <Botao icone={<Save size={18} />} carregando={salvarPerfil.isPending} onClick={() => salvarPerfil.mutate()}>
+          <Botao
+            icone={<Save size={18} />}
+            carregando={salvarPerfil.isPending}
+            disabled={Boolean(apelidoLivre && !apelidoLivre.livre)}
+            onClick={() => salvarPerfil.mutate()}
+          >
             Salvar perfil
           </Botao>
         </Cartao>

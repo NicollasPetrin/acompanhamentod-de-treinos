@@ -7,6 +7,8 @@ export interface Usuario {
   id: string;
   name: string;
   email: string;
+  /** Apelido público, sem @ — é por ele que os amigos te encontram. */
+  username: string | null;
   photoUrl: string | null;
   birthDate: string | null;
   sex: 'masculino' | 'feminino' | 'outro' | null;
@@ -207,6 +209,7 @@ export interface RecordeDoExercicio {
 export interface PessoaPublica {
   id: string;
   name: string;
+  username: string | null;
   photoUrl: string | null;
 }
 
