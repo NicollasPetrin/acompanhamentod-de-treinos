@@ -84,6 +84,7 @@ async function semearUsuarioDemo() {
     data: {
       name: 'Alex Demonstração',
       email: EMAIL_DEMO,
+      username: 'alexdemo',
       passwordHash: await hashPassword(SENHA_DEMO),
       birthDate: new Date('1996-04-12'),
       sex: 'outro',

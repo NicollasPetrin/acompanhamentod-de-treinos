@@ -24,7 +24,7 @@ const grupoSchema = z.object({
   description: z.string().trim().max(200).nullable().optional(),
 });
 
-const CAMPOS_PUBLICOS = { id: true, name: true, photoUrl: true } as const;
+const CAMPOS_PUBLICOS = { id: true, name: true, username: true, photoUrl: true } as const;
 
 /** GET /api/grupos — grupos em que o usuário está (ou foi convidado). */
 groupsRouter.get('/', async (req, res, next) => {

@@ -86,6 +86,7 @@ export const openapiDocument = {
           id: { type: 'string' },
           name: { type: 'string' },
           email: { type: 'string', format: 'email' },
+          username: { type: 'string', nullable: true, description: 'Apelido público, sem @' },
           photoUrl: { type: 'string', nullable: true },
           birthDate: { type: 'string', format: 'date-time', nullable: true },
           sex: { type: 'string', enum: ['masculino', 'feminino', 'outro'], nullable: true },
@@ -402,6 +403,14 @@ export const openapiDocument = {
           properties: { senhaAtual: { type: 'string' }, novaSenha: { type: 'string', minLength: 8 } },
         }),
         responses: { 200: ok({ type: 'object' }), 400: respostaErro('Senha atual incorreta') },
+      },
+    },
+    '/usuarios/username-livre': {
+      get: {
+        tags: ['Usuário'],
+        summary: 'Diz se um nome de usuário está disponível',
+        parameters: [param('username', 'Apelido a verificar', 'string', 'query')],
+        responses: { 200: ok({ type: 'object', properties: { username: { type: 'string' }, livre: { type: 'boolean' }, motivo: { type: 'string', nullable: true } } }) },
       },
     },
     '/exercicios': {
@@ -836,9 +845,13 @@ export const openapiDocument = {
       get: { tags: ['Amigos'], summary: 'Amigos e convites (recebidos e enviados)', responses: { 200: ok({ type: 'object' }) } },
       post: {
         tags: ['Amigos'],
-        summary: 'Convida alguém pelo e-mail (aceita na hora se o convite for mútuo)',
-        requestBody: jsonBody({ type: 'object', required: ['email'], properties: { email: { type: 'string', format: 'email' } } }),
-        responses: { 201: ok({ type: 'object' }), 404: respostaErro('Ninguém usa esse e-mail'), 409: respostaErro('Convite ou amizade já existe') },
+        summary: 'Convida alguém pelo nome de usuário (aceita na hora se o convite for mútuo)',
+        requestBody: jsonBody({
+          type: 'object',
+          required: ['username'],
+          properties: { username: { type: 'string', example: 'brunolima', description: 'Com ou sem @; maiúsculas e acentos são normalizados' } },
+        }),
+        responses: { 201: ok({ type: 'object' }), 404: respostaErro('Ninguém usa esse nome de usuário'), 409: respostaErro('Convite ou amizade já existe') },
       },
     },
     '/amigos/{id}/aceitar': {

@@ -15,10 +15,11 @@ import { arredondar } from '../utils/calculations';
 export interface PessoaPublica {
   id: string;
   name: string;
+  username: string | null;
   photoUrl: string | null;
 }
 
-const CAMPOS_PUBLICOS = { id: true, name: true, photoUrl: true } as const;
+const CAMPOS_PUBLICOS = { id: true, name: true, username: true, photoUrl: true } as const;
 
 /** Alfabeto sem caracteres que se confundem ao ditar o código (O/0, I/1). */
 const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -224,7 +225,7 @@ export async function rankingDoGrupo(groupId: string, desde: Date): Promise<Linh
     .map((m) => {
       const dados = porPessoa.get(m.userId);
       return {
-        pessoa: { id: m.user.id, name: m.user.name, photoUrl: m.user.photoUrl },
+        pessoa: { id: m.user.id, name: m.user.name, username: m.user.username, photoUrl: m.user.photoUrl },
         papel: m.role,
         desde: m.joinedAt,
         treinos: dados?.treinos ?? 0,

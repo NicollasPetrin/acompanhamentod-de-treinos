@@ -30,7 +30,7 @@ export async function limparBanco() {
 }
 
 export interface Sessao {
-  usuario: { id: string; email: string; name: string };
+  usuario: { id: string; email: string; name: string; username: string | null };
   accessToken: string;
   refreshToken: string;
 }
@@ -40,10 +40,11 @@ export async function criarUsuario(
   email = 'teste@treinos.app',
   senha = 'SenhaForte123',
   nome = 'Usuário Teste',
+  username?: string,
 ): Promise<Sessao> {
   const resposta = await request(app)
     .post('/api/auth/registrar')
-    .send({ name: nome, email, password: senha });
+    .send({ name: nome, email, password: senha, ...(username ? { username } : {}) });
 
   if (resposta.status !== 201) {
     throw new Error(`Falha ao criar usuário de teste: ${JSON.stringify(resposta.body)}`);

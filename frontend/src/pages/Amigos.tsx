@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Check, UserMinus, UserPlus, Users, X } from 'lucide-react';
+import { Check, Copy, Share2, UserMinus, UserPlus, Users, X } from 'lucide-react';
 import { apiDelete, apiGet, apiPost, ErroApi } from '../lib/api';
 import { formatarDataRelativa } from '../lib/formato';
 import type { Amizade, ListaDeAmigos } from '../lib/tipos';
@@ -15,7 +15,7 @@ export default function Amigos() {
   const { usuario } = useAuth();
   const { sucesso, erro: avisarErro } = useAvisos();
 
-  const [email, setEmail] = useState('');
+  const [apelido, setApelido] = useState('');
   const [removendo, setRemovendo] = useState<Amizade | null>(null);
 
   const { data, isLoading } = useQuery({
@@ -26,10 +26,10 @@ export default function Amigos() {
   const atualizar = () => queryClient.invalidateQueries({ queryKey: ['amigos'] });
 
   const convidar = useMutation({
-    mutationFn: () => apiPost<{ status: string }>('/amigos', { email: email.trim() }),
+    mutationFn: () => apiPost<{ status: string }>('/amigos', { username: apelido.trim() }),
     onSuccess: async (resposta) => {
       await atualizar();
-      setEmail('');
+      setApelido('');
       sucesso(
         resposta.status === 'aceita'
           ? 'Vocês já são amigos! A pessoa também tinha te convidado.'
@@ -55,6 +55,30 @@ export default function Amigos() {
     },
   });
 
+  const copiar = async () => {
+    if (!usuario?.username) return;
+    try {
+      await navigator.clipboard.writeText(`@${usuario.username}`);
+      sucesso('Nome de usuário copiado');
+    } catch {
+      avisarErro(`Copie manualmente: @${usuario.username}`);
+    }
+  };
+
+  const compartilhar = async () => {
+    if (!usuario?.username) return;
+    const texto = `Me adiciona no app de treinos: @${usuario.username}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ text: texto });
+        return;
+      } catch {
+        /* a pessoa cancelou */
+      }
+    }
+    void copiar();
+  };
+
   if (isLoading) return <Carregando texto="Carregando seus amigos…" />;
 
   const { amigos = [], recebidos = [], enviados = [] } = data ?? {};
@@ -69,34 +93,53 @@ export default function Amigos() {
       </div>
 
       <Cartao className="flex flex-col gap-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="font-semibold">Seu nome de usuário</h2>
+            <p className="mt-0.5 text-sm text-texto-suave">É isso que você passa para a galera te achar.</p>
+          </div>
+          <Link to="/app/configuracoes" className="shrink-0 text-sm font-medium text-primaria">
+            Mudar
+          </Link>
+        </div>
+        <div className="flex items-center gap-2">
+          <code className="min-w-0 flex-1 truncate rounded-xl border border-borda bg-superficie-2 px-4 py-3 text-lg font-bold">
+            @{usuario?.username ?? '…'}
+          </code>
+          <Botao variante="secundario" icone={<Copy size={18} />} onClick={copiar} aria-label="Copiar seu nome de usuário" />
+          <Botao variante="secundario" icone={<Share2 size={18} />} onClick={compartilhar} aria-label="Compartilhar seu nome de usuário" />
+        </div>
+      </Cartao>
+
+      <Cartao className="flex flex-col gap-3">
         <div>
           <h2 className="font-semibold">Adicionar amigo</h2>
           <p className="mt-0.5 text-sm text-texto-suave">
-            Use o e-mail com que a pessoa criou a conta. O seu é <strong>{usuario?.email}</strong>.
+            Digite o nome de usuário da pessoa. Não precisa do @.
           </p>
         </div>
         <form
           className="flex flex-col gap-2 sm:flex-row"
           onSubmit={(e) => {
             e.preventDefault();
-            if (email.trim()) convidar.mutate();
+            if (apelido.trim()) convidar.mutate();
           }}
         >
           <Campo
-            rotulo="E-mail do amigo"
-            name="email-do-amigo"
-            type="email"
-            inputMode="email"
+            rotulo="Nome de usuário do amigo"
+            name="nome-de-usuario-do-amigo"
             autoComplete="off"
-            placeholder="amigo@email.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            autoCapitalize="none"
+            spellCheck={false}
+            placeholder="brunolima"
+            value={apelido}
+            onChange={(e) => setApelido(e.target.value)}
           />
           <Botao
             type="submit"
             icone={<UserPlus size={18} />}
             carregando={convidar.isPending}
-            disabled={!email.trim()}
+            disabled={!apelido.trim()}
             className="sm:mt-[26px] sm:shrink-0"
           >
             Convidar
@@ -113,7 +156,9 @@ export default function Amigos() {
                 <Avatar pessoa={convite.pessoa} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold">{convite.pessoa.name}</p>
-                  <p className="text-xs text-texto-suave">{formatarDataRelativa(convite.desde)}</p>
+                  <p className="truncate text-xs text-texto-suave">
+                    @{convite.pessoa.username} · {formatarDataRelativa(convite.desde)}
+                  </p>
                 </div>
                 <Botao
                   tamanho="sm"
@@ -142,7 +187,7 @@ export default function Amigos() {
           <Vazio
             icone={<Users size={32} />}
             titulo="Nenhum amigo por aqui ainda"
-            descricao="Convide alguém pelo e-mail acima. Depois vocês podem criar um grupo e ver os treinos uns dos outros."
+            descricao="Convide alguém pelo nome de usuário acima. Depois vocês podem criar um grupo e ver os treinos uns dos outros."
           />
         ) : (
           <div className="flex flex-col gap-2">
@@ -151,7 +196,9 @@ export default function Amigos() {
                 <Avatar pessoa={amigo.pessoa} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold">{amigo.pessoa.name}</p>
-                  <p className="text-xs text-texto-suave">Amigos desde {formatarDataRelativa(amigo.desde)}</p>
+                  <p className="truncate text-xs text-texto-suave">
+                    @{amigo.pessoa.username} · amigos desde {formatarDataRelativa(amigo.desde)}
+                  </p>
                 </div>
                 <button
                   onClick={() => setRemovendo(amigo)}
@@ -173,7 +220,9 @@ export default function Amigos() {
             {enviados.map((convite) => (
               <Cartao key={convite.id} className="flex items-center gap-3">
                 <Avatar pessoa={convite.pessoa} tamanho="sm" />
-                <p className="min-w-0 flex-1 truncate text-sm">{convite.pessoa.name}</p>
+                <p className="min-w-0 flex-1 truncate text-sm">
+                  {convite.pessoa.name} <span className="text-texto-suave">@{convite.pessoa.username}</span>
+                </p>
                 <Botao tamanho="sm" variante="secundario" onClick={() => remover.mutate(convite.id)}>
                   Cancelar
                 </Botao>

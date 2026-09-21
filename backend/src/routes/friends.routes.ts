@@ -5,6 +5,7 @@ import { requireAuth, userId } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import { badRequest, conflict, forbidden, notFound } from '../lib/errors';
 import { listarAmizades } from '../services/social';
+import { normalizarUsername, TAMANHO_MAXIMO, TAMANHO_MINIMO } from '../lib/username';
 
 export const friendsRouter = Router();
 friendsRouter.use(requireAuth);
@@ -19,24 +20,33 @@ friendsRouter.get('/', async (req, res, next) => {
 });
 
 /**
- * POST /api/amigos — envia convite de amizade pelo e-mail.
+ * POST /api/amigos — envia convite de amizade pelo nome de usuário.
  *
  * Se a outra pessoa já tinha convidado você, o convite é aceito na hora: é o
  * que as duas queriam, e evita o vaivém de "convidei mas ele também convidou".
  */
 friendsRouter.post(
   '/',
-  validate(z.object({ email: z.string().trim().toLowerCase().email('E-mail inválido') })),
+  validate(
+    z.object({
+      username: z
+        .string()
+        .trim()
+        .min(1, 'Informe o nome de usuário')
+        .max(TAMANHO_MAXIMO + 1, 'Nome de usuário muito longo'),
+    }),
+  ),
   async (req, res, next) => {
     try {
       const uid = userId(req);
-      const { email } = req.body as { email: string };
+      const username = normalizarUsername((req.body as { username: string }).username);
+      if (username.length < TAMANHO_MINIMO) throw badRequest('Nome de usuário muito curto');
 
       const pessoa = await prisma.user.findUnique({
-        where: { email },
-        select: { id: true, name: true, photoUrl: true },
+        where: { username },
+        select: { id: true, name: true, username: true, photoUrl: true },
       });
-      if (!pessoa) throw notFound('Ninguém usa esse e-mail por aqui ainda');
+      if (!pessoa) throw notFound(`Ninguém por aqui usa @${username}`);
       if (pessoa.id === uid) throw badRequest('Você não precisa se adicionar 🙂');
 
       const existente = await prisma.friendship.findFirst({

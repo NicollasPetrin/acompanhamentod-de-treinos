@@ -104,13 +104,15 @@ const TUTORIAIS: Tutorial[] = [
     titulo: 'Amigos e grupos de treino',
     resumo: 'Ver o treino da galera sem precisar mandar print no zap.',
     passos: [
-      <>Em <strong>Amigos</strong>, convide quem treina com você pelo <strong>e-mail da conta</strong> dele. A pessoa aceita e pronto.</>,
+      <>Todo mundo tem um <strong>nome de usuário</strong> (aquele @ no topo da tela de Amigos). Passe o seu para a galera — dá para copiar ou compartilhar com um toque.</>,
+      <>Em <strong>Amigos</strong>, digite o nome de usuário da pessoa e mande o convite. Ela aceita e pronto.</>,
       <>Em <strong>Grupos de treino</strong>, toque em <strong>Criar grupo</strong> e dê um nome (&quot;Galera da academia&quot;, &quot;Segunda a sexta&quot;…).</>,
       <>O grupo ganha um <strong>código de 6 letras</strong>. Mande para os amigos: quem tiver o código entra. Amigos do app dá para convidar direto, sem código.</>,
       <>A partir daí não precisa fazer mais nada: <strong>todo treino que alguém finalizar aparece sozinho no mural do grupo</strong>, com duração, volume, grupos musculares e recordes.</>,
       <>A aba <strong>Ranking da semana</strong> mostra quem treinou mais — a contagem zera toda segunda-feira.</>,
+      <>O mural mostra o resumo, nunca a carga série a série. Para pausar sem sair do grupo, desligue <strong>Treinos nos grupos</strong> em Perfil e configurações.</>,
     ],
-    dica: 'O mural mostra o resumo, nunca a carga série a série. E se quiser pausar, é só desligar "Treinos nos grupos" em Perfil e configurações — você continua vendo os outros.',
+    dica: 'Não gostou do seu @? Troque quando quiser em Perfil e configurações — ele precisa só ser diferente do de todo mundo.',
   },
   {
     id: 'dupla',
