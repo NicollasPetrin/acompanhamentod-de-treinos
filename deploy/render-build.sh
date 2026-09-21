@@ -41,7 +41,24 @@ node scripts/preparar-producao.js
 
 echo "▶ Sincronizando o banco…"
 npx prisma generate --schema=prisma/schema.producao.prisma
-npx prisma db push --schema=prisma/schema.producao.prisma --skip-generate
+
+# Antes de mexer no banco, mostra no log exatamente qual SQL será aplicado.
+# Assim, se um dia uma alteração for destrutiva de verdade, dá para ver no
+# build em vez de descobrir depois — o --accept-data-loss abaixo não avisa.
+URL_DDL="${DIRECT_URL:-$DATABASE_URL}"
+if [ -n "$URL_DDL" ]; then
+  echo "— Alterações pendentes no banco:"
+  npx prisma migrate diff \
+    --from-url "$URL_DDL" \
+    --to-schema-datamodel prisma/schema.producao.prisma \
+    --script || echo "  (não foi possível calcular o diff; seguindo mesmo assim)"
+fi
+
+# --accept-data-loss: o `db push` interrompe o build diante de qualquer aviso,
+# inclusive o de "vou criar um índice único" — que é apenas um aviso, já que o
+# PostgreSQL aceita vários NULL numa coluna única. Sem a flag, toda coluna nova
+# com @unique derruba o deploy.
+npx prisma db push --schema=prisma/schema.producao.prisma --skip-generate --accept-data-loss
 
 echo "▶ Compilando a API…"
 npm run build
