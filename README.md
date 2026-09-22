@@ -21,6 +21,7 @@ escuro por padrão e funcionamento **offline**.
 - [Testes automatizados](#testes-automatizados)
 - [Documentação da API](#documentação-da-api)
 - [Como funciona o modo offline](#como-funciona-o-modo-offline)
+- [Notificações do treino](#notificações-do-treino)
 - [Regras de cálculo](#regras-de-cálculo)
 - [Decisões de projeto](#decisões-de-projeto)
 - [Publicar em ~5 minutos](#publicar-em-5-minutos)
@@ -104,6 +105,8 @@ escuro por padrão e funcionamento **offline**.
   guardadas no banco, para não sumirem em hospedagem gratuita)
 - Metas com barra de progresso automática (carga, 1RM, peso corporal, frequência…)
 - Lembretes de treino por notificação nos dias e horário configurados
+- **Notificações do treino** com o app fechado: "Descanso acabou" na hora certa
+  e "Treino em andamento" na tela de bloqueio, com um toque para voltar
 - **Treino em dupla**: duas contas conectadas no mesmo aparelho, com troca
   rápida durante o treino — cada pessoa registra na própria conta e mantém o
   próprio rascunho
@@ -241,6 +244,11 @@ Arquivo `backend/.env` (veja `backend/.env.example`):
 | `MAX_UPLOAD_MB` | `5` | Tamanho máximo das fotos (guardadas no banco) |
 | `DIRECT_URL` | — | Conexão direta do banco, usada para criar as tabelas em provedores serverless (Neon, Supabase) |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | — | Envio de e-mail; **sem SMTP configurado o e-mail é impresso no console**, o que já permite testar a recuperação de senha |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | *(geradas e guardadas no banco)* | Chaves do Web Push. Só defina se quiser controlar as chaves — trocá-las desfaz as inscrições |
+| `VAPID_SUBJECT` | `APP_URL` | Contato exigido pelos serviços de push (`mailto:` ou `https:`) |
+| `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SIGNING_KEY` | — | Agendador da Upstash para o aviso de fim do descanso em hospedagem serverless (Vercel). Veja [Notificações do treino](#notificações-do-treino) |
+| `QSTASH_URL` | `https://qstash.upstash.io` | Endereço do QStash (o painel da Upstash mostra o da sua região) |
+| `API_PUBLIC_URL` | *(detectado na Vercel e no Render)* | Endereço público da API, que o QStash chama na hora marcada |
 
 ---
 
@@ -306,6 +314,11 @@ Cobrem as regras críticas:
   semana, convite só para amigos, privacidade (treino anterior à entrada não
   vaza, compartilhamento desligado some do mural) e autorização (quem não é do
   grupo recebe 404)
+- **`tests/notificacoes.test.ts`** — Web Push de ponta a ponta contra um serviço
+  de push falso (a mensagem é decifrada como o celular faria): inscrição,
+  "treino em andamento" na hora, "descanso acabou" no horário, cancelamento ao
+  voltar ao app, envio único mesmo com disparo repetido, aparelho removido
+  (410) e assinatura do QStash
 
 Os testes usam um SQLite separado (`prisma/test.db`), recriado a cada execução.
 
@@ -350,6 +363,59 @@ e os erros seguem sempre o mesmo formato:
 
 Para instalar no celular: abra o site no navegador e escolha
 *"Adicionar à tela de início"*.
+
+---
+
+## Notificações do treino
+
+Duas notificações, pensadas para quando o app **não** está na tela (celular
+bloqueado, outro app aberto, app fechado):
+
+| Notificação | Quando | Como |
+|---|---|---|
+| **Treino em andamento — {treino}** | Ao sair do app no meio do treino | Sem som. Diz até que horas vai o descanso e quantas séries já foram; um toque volta para o treino |
+| **Descanso acabou** | Na hora em que o descanso termina | Com som e vibração, com o nome do exercício |
+
+Com o app aberto nada disso aparece: quem avisa é o próprio cronômetro, com som
+e vibração. O cronômetro guarda o **horário de término** (não um contador), por
+isso continua certo depois de bloquear a tela ou fechar e reabrir o app.
+
+Cada pessoa liga em *Perfil e configurações → Notificações do treino* (ou no
+convite que aparece no cronômetro de descanso) e escolhe quais quer receber.
+No **treino em dupla**, cada conta liga as suas no mesmo aparelho.
+
+**iPhone**: precisa do iOS 16.4 ou mais novo e do app **instalado na Tela de
+Início** (Safari → Compartilhar → *Adicionar à Tela de Início*). Aberto como
+aba do Safari, o iPhone não entrega notificações — o app avisa isso na tela
+de configurações.
+
+### Como funciona
+
+Quando o app sai da tela, ele avisa a API (`POST /api/notificacoes/saida`),
+que manda na hora o "treino em andamento" pelo **Web Push** e marca o
+"descanso acabou" para o fim do descanso. Se a pessoa volta antes, o app
+cancela (`DELETE /api/notificacoes/saida`). As chaves VAPID são geradas na
+primeira vez e ficam no banco — não há nada para configurar.
+
+O "descanso acabou" precisa que alguém acorde a API na hora certa:
+
+- **Render, sua máquina ou qualquer servidor que fica ligado**: um timer
+  comum resolve. Nada a configurar.
+- **Vercel**: a função dorme entre uma requisição e outra, então o timer pode
+  não disparar. O "treino em andamento" (que é imediato) funciona sempre; para
+  o fim do descanso chegar com o app fechado, ligue o **QStash** da Upstash
+  (o plano gratuito sobra para um grupo de amigos):
+  1. Crie uma conta em [upstash.com](https://upstash.com) e abra **QStash**.
+  2. Copie `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY` e
+     `QSTASH_NEXT_SIGNING_KEY` (e `QSTASH_URL`, se o painel mostrar um
+     endereço diferente de `https://qstash.upstash.io`).
+  3. Na Vercel, projeto da **API** → *Settings → Environment Variables*,
+     adicione as três (ou quatro) e faça **Redeploy**.
+
+  O QStash chama `POST /api/notificacoes/disparar/:id` na hora marcada, com
+  assinatura conferida pela API. Para conferir o modo em uso, abra
+  `/api/saude`: o campo `notificacoes` mostra `qstash`, `processo` ou
+  `sem-agendador`.
 
 ---
 
@@ -488,9 +554,11 @@ cd backend && NODE_ENV=production node dist/server.js
 
 ## Limitações conhecidas
 
-- **Notificações**: os lembretes usam a Notification API e disparam com o app
-  aberto ou em segundo plano. Notificações com o app completamente fechado
-  exigiriam Web Push com chaves VAPID e um serviço de push — não incluído.
+- **Notificações**: os lembretes de treino (dias e horário) usam a
+  Notification API e disparam com o app aberto ou em segundo plano. As
+  notificações do treino (descanso e treino em andamento) usam Web Push e
+  chegam com o app fechado — no iPhone, só com o app na Tela de Início. Na
+  Vercel sem QStash, o aviso de fim do descanso com o app fechado pode atrasar.
 - **Importação**: o CSV do Strong e do Hevy é reconhecido automaticamente.
   Exercícios cujo nome não casa com a biblioteca viram exercícios personalizados
   (há um dicionário com os nomes mais comuns em inglês).

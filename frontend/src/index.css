@@ -3,6 +3,20 @@
 @tailwind utilities;
 
 /*
+ * Áreas seguras do iPhone (barra de status, Dynamic Island, indicador de
+ * início). O app usa viewport-fit=cover e barra de status translúcida para
+ * ocupar a tela toda, então o conteúdo precisa desviar dessas faixas por conta
+ * própria. Tudo passa por estas variáveis — em vez de env() espalhado — para
+ * dar para simular um iPhone no navegador do computador e nos testes.
+ */
+:root {
+  --seguro-topo: env(safe-area-inset-top, 0px);
+  --seguro-base: env(safe-area-inset-bottom, 0px);
+  --seguro-esq: env(safe-area-inset-left, 0px);
+  --seguro-dir: env(safe-area-inset-right, 0px);
+}
+
+/*
  * Tema escuro por padrão (academia costuma ter iluminação ruim para telas
  * claras). O tema claro é ativado trocando o atributo data-tema no <html>.
  * Todas as cores passam por variáveis para manter contraste consistente.
@@ -22,6 +36,7 @@
   --cor-perigo: 248 113 113;
   --cor-alerta: 251 191 36;
   --cor-info: 96 165 250;
+  --cor-barra-status: var(--cor-fundo);
   color-scheme: dark;
 }
 
@@ -38,6 +53,8 @@
   --cor-perigo: 220 38 38;
   --cor-alerta: 180 120 8;
   --cor-info: 37 99 235;
+  /* relógio e bateria do iPhone ficam brancos: no tema claro a faixa escurece */
+  --cor-barra-status: 17 24 32;
   color-scheme: light;
 }
 
@@ -52,9 +69,34 @@
 
   body {
     @apply bg-fundo text-texto font-sans antialiased;
-    /* Respeita as áreas seguras do iPhone (notch e barra inferior) */
-    padding-bottom: env(safe-area-inset-bottom);
+    /* laterais: entalhe do iPhone deitado */
+    padding-left: var(--seguro-esq);
+    padding-right: var(--seguro-dir);
     overscroll-behavior-y: contain;
+  }
+
+  /*
+   * O app começa abaixo da barra de status. As telas usam min-h-screen, que o
+   * tailwind.config.js desconta desta mesma faixa — assim a página não ganha
+   * uma rolagem sobrando do tamanho da barra.
+   */
+  #root {
+    padding-top: var(--seguro-topo);
+  }
+
+  /*
+   * Faixa sólida atrás da barra de status. Sem ela, o que rola por baixo
+   * aparece atrás do relógio — e os toques ali vão para o sistema (rolar para
+   * o topo), não para o app. Fica acima do conteúdo e abaixo dos modais.
+   */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0 0 auto 0;
+    height: var(--seguro-topo);
+    background: rgb(var(--cor-barra-status));
+    z-index: 45;
+    pointer-events: none;
   }
 
   /* Foco sempre visível — navegação por teclado */

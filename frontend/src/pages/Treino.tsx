@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -8,6 +8,9 @@ import clsx from 'clsx';
 import { useSessaoTreino } from '../lib/sessaoTreino';
 import { useTempoDecorrido } from '../components/CronometroDescanso';
 import CronometroDescanso from '../components/CronometroDescanso';
+import { iniciarDescanso, lerDescanso, salvarDescanso, type EstadoDescanso } from '../lib/descanso';
+import { useNotificacoesDoTreino } from '../lib/notificacoes';
+import ConviteNotificacoes from '../components/ConviteNotificacoes';
 import SeletorDeExercicio from '../components/SeletorDeExercicio';
 import { useAuth, useUnidade } from '../lib/auth';
 import { formatarDataRelativa, formatarDuracao, formatarVolume, paraKg, paraNumero, paraUnidade, plural } from '../lib/formato';
@@ -36,7 +39,24 @@ export default function Treino() {
     finalizar, descartar,
   } = useSessaoTreino({ userId: usuario?.id ?? '', treinoId: id, diaId });
 
-  const [descansoSeg, setDescansoSeg] = useState<number | null>(null);
+  // O descanso vive fora do componente (localStorage), para sobreviver a sair
+  // do app, bloquear a tela ou fechar e reabrir no meio do intervalo.
+  const [descanso, setDescanso] = useState<EstadoDescanso | null>(null);
+  const userId = usuario?.id ?? '';
+  const treinoId = sessao?.clientId;
+
+  useEffect(() => {
+    if (!userId || !treinoId) return;
+    setDescanso(lerDescanso(userId, treinoId));
+  }, [userId, treinoId]);
+
+  const mudarDescanso = useCallback(
+    (novo: EstadoDescanso | null) => {
+      setDescanso(novo);
+      if (userId) salvarDescanso(userId, novo);
+    },
+    [userId],
+  );
   const [seletorAberto, setSeletorAberto] = useState(false);
   const [finalizarAberto, setFinalizarAberto] = useState(false);
   const [descartarAberto, setDescartarAberto] = useState(false);
@@ -65,6 +85,17 @@ export default function Treino() {
     window.addEventListener('beforeunload', aoSair);
     return () => window.removeEventListener('beforeunload', aoSair);
   }, [sessao, totais.concluidas]);
+
+  // Saiu da tela no meio do treino: "treino em andamento" na hora e
+  // "descanso acabou" quando o descanso terminar
+  useNotificacoesDoTreino({
+    userId,
+    nome: sessao?.name ?? null,
+    url: sessao && !sessao.local ? `/app/treino/${sessao.id}` : '/app/treino',
+    seriesFeitas: totais.concluidas,
+    seriesTotal: totais.total,
+    descanso,
+  });
 
   if (carregando) return <Carregando texto="Preparando seu treino…" />;
 
@@ -111,7 +142,8 @@ export default function Treino() {
     if (!serie.completed) {
       // Acabou de concluir: dispara o descanso e comemora o recorde
       if (serie.type !== 'aquecimento') {
-        setDescansoSeg(restSec ?? usuario?.defaultRestSec ?? 90);
+        const nome = sessao.exercicios.find((e) => e.id === exercicioId)?.exercise.name;
+        mudarDescanso(iniciarDescanso(sessao.clientId, restSec ?? usuario?.defaultRestSec ?? 90, nome));
       }
       navigator.vibrate?.(30);
       if (prs.length > 0) {
@@ -124,6 +156,7 @@ export default function Treino() {
     setFinalizando(true);
     try {
       const { resumo, offline } = await finalizar();
+      mudarDescanso(null);
       await queryClient.invalidateQueries();
       if (offline) avisar('Treino salvo no aparelho. Enviaremos quando a conexão voltar.');
       navegar(`/app/resumo/${resumo.treino.id}`, { state: { resumo, offline }, replace: true });
@@ -137,7 +170,7 @@ export default function Treino() {
   return (
     <div className="pb-32">
       {/* Cabeçalho fixo com cronômetro e ação de finalizar */}
-      <header className="sticky top-0 z-30 -mx-4 mb-4 border-b border-borda bg-fundo/95 px-4 py-3 backdrop-blur">
+      <header className="sticky top-[var(--seguro-topo)] z-30 -mx-4 mb-4 border-b border-borda bg-fundo/95 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setDescartarAberto(true)}
@@ -293,8 +326,13 @@ export default function Treino() {
         </div>
       )}
 
-      {descansoSeg !== null && (
-        <CronometroDescanso segundos={descansoSeg} aoFechar={() => setDescansoSeg(null)} />
+      {descanso && (
+        <CronometroDescanso
+          estado={descanso}
+          aoMudar={mudarDescanso}
+          aoFechar={() => mudarDescanso(null)}
+          extra={<ConviteNotificacoes userId={userId} />}
+        />
       )}
 
       <SeletorDeExercicio
@@ -436,6 +474,7 @@ export default function Treino() {
         aoCancelar={() => setDescartarAberto(false)}
         aoConfirmar={async () => {
           await descartar();
+          mudarDescanso(null);
           setDescartarAberto(false);
           navegar('/app', { replace: true });
         }}

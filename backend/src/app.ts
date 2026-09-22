@@ -25,6 +25,8 @@ import { dataRouter } from './routes/data.routes';
 import { photosRouter } from './routes/photos.routes';
 import { friendsRouter } from './routes/friends.routes';
 import { groupsRouter } from './routes/groups.routes';
+import { notificationsRouter } from './routes/notifications.routes';
+import { modoAgendamento } from './services/agendador';
 
 interface OpcoesApp {
   /**
@@ -55,7 +57,15 @@ export function createApp({ servirFrontend = true }: OpcoesApp = {}) {
     }),
   );
   app.use(compression());
-  app.use(express.json({ limit: '2mb' }));
+  app.use(
+    express.json({
+      limit: '2mb',
+      // Guarda o corpo cru: a assinatura do QStash é calculada sobre ele
+      verify: (req, _res, buf) => {
+        (req as express.Request & { corpoBruto?: Buffer }).corpoBruto = buf;
+      },
+    }),
+  );
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
   if (!isTest) app.use(morgan('dev'));
@@ -65,7 +75,9 @@ export function createApp({ servirFrontend = true }: OpcoesApp = {}) {
    * acessível. É a primeira coisa a abrir quando um deploy não funciona.
    */
   app.get('/api/saude', async (_req, res) => {
-    const base = { ambiente: env.NODE_ENV, horario: new Date().toISOString() };
+    // "notificacoes" diz como o fim do descanso é agendado: "qstash" funciona com
+    // o app fechado em qualquer hospedagem; "processo" só em servidor que fica ligado
+    const base = { ambiente: env.NODE_ENV, horario: new Date().toISOString(), notificacoes: modoAgendamento() };
     try {
       await prisma.$queryRaw`SELECT 1`;
       const exercicios = await prisma.exercise.count();
@@ -104,6 +116,7 @@ export function createApp({ servirFrontend = true }: OpcoesApp = {}) {
   app.use('/api/fotos', photosRouter);
   app.use('/api/amigos', friendsRouter);
   app.use('/api/grupos', groupsRouter);
+  app.use('/api/notificacoes', notificationsRouter);
 
   if (servirFrontend) {
     // Site compilado servido pelo mesmo processo, com fallback para o index

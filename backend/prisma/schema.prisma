@@ -72,6 +72,10 @@ model User {
   pedidosRecebidos  Friendship[]  @relation("PedidosRecebidos")
   gruposCriados     Group[]       @relation("GruposCriados")
   grupos            GroupMember[]
+
+  // Notificações
+  inscricoesPush    PushSubscription[]
+  notificacoes      ScheduledNotification[]
 }
 
 model RefreshToken {
@@ -429,4 +433,57 @@ model GroupMember {
 
   @@unique([groupId, userId])
   @@index([userId, status])
+}
+
+// ---------------------------------------------------------------------------
+// Notificações (Web Push)
+// ---------------------------------------------------------------------------
+
+/**
+ * Um aparelho autorizado a receber notificações de uma conta. O mesmo aparelho
+ * pode estar em duas contas (treino em dupla) — por isso a unicidade é do par.
+ */
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, endpoint])
+  @@index([endpoint])
+}
+
+/**
+ * Notificação marcada para uma hora certa — hoje, o fim do descanso quando o
+ * app não está na tela. `sentAt` e `canceledAt` garantem que ela saia uma vez
+ * só, mesmo que o agendador chame duas vezes.
+ */
+model ScheduledNotification {
+  id         String    @id @default(cuid())
+  userId     String
+  kind       String // descanso
+  sendAt     DateTime
+  title      String
+  body       String
+  url        String
+  sentAt     DateTime?
+  canceledAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, kind])
+  @@index([sendAt])
+}
+
+/** Configurações da instalação que o próprio app cria (ex.: chaves VAPID). */
+model AppConfig {
+  key       String   @id
+  value     String
+  createdAt DateTime @default(now())
 }

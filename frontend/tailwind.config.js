@@ -24,6 +24,8 @@ export default {
         sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
       },
       borderRadius: { xl: '0.875rem', '2xl': '1.25rem' },
+      // A tela útil é a altura toda menos a barra de status (ver #root no index.css)
+      minHeight: { screen: 'calc(100vh - var(--seguro-topo))' },
       keyframes: {
         'sobe-suave': { '0%': { opacity: '0', transform: 'translateY(8px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
         pulsa: { '0%,100%': { opacity: '1' }, '50%': { opacity: '0.45' } },

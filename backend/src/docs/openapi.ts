@@ -61,6 +61,7 @@ export const openapiDocument = {
     { name: 'Dados', description: 'Exportação e importação (CSV/JSON)' },
     { name: 'Amigos', description: 'Convites de amizade' },
     { name: 'Grupos', description: 'Grupos de treino, mural automático e ranking' },
+    { name: 'Notificações', description: 'Web Push: fim do descanso e treino em andamento com o app fechado' },
   ],
   components: {
     securitySchemes: {
@@ -936,6 +937,73 @@ export const openapiDocument = {
         summary: 'Sai do grupo, ou o dono remove um membro',
         parameters: [param('id', 'ID do grupo'), param('userId', 'ID da pessoa')],
         responses: { 200: ok({ type: 'object' }) },
+      },
+    },
+    '/notificacoes/chave': {
+      get: {
+        tags: ['Notificações'],
+        summary: 'Chave pública (VAPID) para o aparelho se inscrever e o modo de agendamento',
+        responses: { 200: ok({ type: 'object', properties: { publicKey: { type: 'string' }, agendamento: { type: 'string', enum: ['qstash', 'processo'] } } }) },
+      },
+    },
+    '/notificacoes/inscricao': {
+      post: {
+        tags: ['Notificações'],
+        summary: 'Inscreve este aparelho (objeto PushSubscription do navegador)',
+        requestBody: jsonBody({
+          type: 'object',
+          required: ['endpoint', 'keys'],
+          properties: {
+            endpoint: { type: 'string', format: 'uri' },
+            keys: { type: 'object', properties: { p256dh: { type: 'string' }, auth: { type: 'string' } } },
+          },
+        }),
+        responses: { 201: ok({ type: 'object' }) },
+      },
+      delete: {
+        tags: ['Notificações'],
+        summary: 'Desinscreve este aparelho',
+        requestBody: jsonBody({ type: 'object', required: ['endpoint'], properties: { endpoint: { type: 'string' } } }),
+        responses: { 200: ok({ type: 'object' }) },
+      },
+    },
+    '/notificacoes/saida': {
+      post: {
+        tags: ['Notificações'],
+        summary: 'O app saiu da tela no meio do treino',
+        description:
+          'Envia na hora o aviso de "treino em andamento" (se retomada=true) e agenda o de "descanso acabou" para descansoTerminaEm. Um novo envio substitui o agendamento anterior.',
+        requestBody: jsonBody({
+          type: 'object',
+          required: ['nome'],
+          properties: {
+            nome: { type: 'string', example: 'Treino A — Peito' },
+            url: { type: 'string', example: '/app/treino/abc' },
+            seriesFeitas: { type: 'integer' },
+            seriesTotal: { type: 'integer' },
+            retomada: { type: 'boolean', default: true },
+            descansoTerminaEm: { type: 'string', format: 'date-time' },
+            exercicio: { type: 'string', example: 'Agachamento livre' },
+          },
+        }),
+        responses: { 200: ok({ type: 'object', properties: { retomada: { type: 'integer' }, descansoAgendado: { type: 'boolean' } } }) },
+      },
+      delete: {
+        tags: ['Notificações'],
+        summary: 'O app voltou para a tela: cancela o aviso de descanso marcado',
+        responses: { 200: ok({ type: 'object', properties: { cancelados: { type: 'integer' } } }) },
+      },
+    },
+    '/notificacoes/teste': {
+      post: { tags: ['Notificações'], summary: 'Manda uma notificação de teste agora', responses: { 200: ok({ type: 'object' }) } },
+    },
+    '/notificacoes/disparar/{id}': {
+      post: {
+        tags: ['Notificações'],
+        summary: 'Chamado pelo QStash na hora marcada (exige a assinatura Upstash-Signature)',
+        security: [],
+        parameters: [param('id', 'ID da notificação agendada')],
+        responses: { 200: ok({ type: 'object' }), 403: respostaErro('Assinatura ausente ou inválida') },
       },
     },
   },

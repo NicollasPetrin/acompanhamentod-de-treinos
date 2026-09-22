@@ -142,6 +142,26 @@ async function renovarToken(): Promise<string | null> {
 }
 
 /**
+ * Renova o token de acesso se ele vence nos próximos minutos.
+ *
+ * Usado durante o treino: quando o app sai da tela, o aviso para o servidor é
+ * mandado às pressas, sem chance de renovar o token no meio do caminho — então
+ * ele precisa já estar em dia.
+ */
+export async function garantirTokenFresco(margemMs = 5 * 60 * 1000): Promise<void> {
+  const sessao = lerSessao();
+  if (!sessao?.accessToken) return;
+  try {
+    const conteudo = sessao.accessToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const { exp } = JSON.parse(atob(conteudo)) as { exp?: number };
+    if (exp && exp * 1000 - Date.now() > margemMs) return;
+  } catch {
+    /* token em formato inesperado: renova por garantia */
+  }
+  await renovarToken();
+}
+
+/**
  * Cliente HTTP da aplicação: injeta o token, converte JSON, padroniza erros e
  * renova o access token automaticamente quando ele expira.
  */
