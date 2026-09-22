@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma';
 import { calcularStreakDias } from '../utils/calculations';
+import { fusoDoUsuario, horaLocal } from '../lib/datas';
 
 interface DefinicaoConquista {
   code: string;
@@ -42,6 +43,7 @@ const DEFINICOES: DefinicaoConquista[] = [
  * Chamado ao finalizar um treino. Retorna apenas as conquistas inéditas.
  */
 export async function verificarConquistas(userId: string) {
+  const fuso = await fusoDoUsuario(userId);
   const treinos = await prisma.workout.findMany({
     where: { userId, status: 'concluido' },
     select: { startedAt: true, durationSec: true, totalVolume: true },
@@ -57,13 +59,13 @@ export async function verificarConquistas(userId: string) {
 
   const ctx: ContextoConquistas = {
     totalTreinos: treinos.length,
-    streak: calcularStreakDias(treinos.map((t) => t.startedAt)),
+    streak: calcularStreakDias(treinos.map((t) => t.startedAt), new Date(), fuso),
     maiorCarga: maiorCargaRecord._max.value ?? 0,
     maiorVolumeTreino: Math.max(...treinos.map((t) => t.totalVolume ?? 0)),
     treinosUltimos7Dias: treinos.filter((t) => t.startedAt >= seteDiasAtras).length,
     maiorDuracaoMin: Math.max(...treinos.map((t) => (t.durationSec ?? 0) / 60)),
-    treinoMadrugada: treinos.some((t) => t.startedAt.getHours() < 6),
-    treinoNoturno: treinos.some((t) => t.startedAt.getHours() >= 22),
+    treinoMadrugada: treinos.some((t) => horaLocal(t.startedAt, fuso) < 6),
+    treinoNoturno: treinos.some((t) => horaLocal(t.startedAt, fuso) >= 22),
   };
 
   const existentes = await prisma.achievement.findMany({ where: { userId }, select: { code: true } });

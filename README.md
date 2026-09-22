@@ -73,7 +73,8 @@ escuro por padrão e funcionamento **offline**.
 - Rascunho salvo automaticamente: fechou o app, retoma de onde parou
 
 **Histórico e progresso**
-- Calendário mensal com os dias treinados
+- Calendário mensal com os dias treinados, com o dia contado **no seu fuso**:
+  treino das 22h fica no dia em que você treinou, não no seguinte
 - Lista de treinos com detalhes, edição e exclusão (recordes recalculados)
 - Gráficos: volume semanal, frequência mensal, distribuição por grupo muscular,
   evolução de carga e de 1RM por exercício
@@ -274,7 +275,7 @@ como JSON em colunas de texto —, então o schema roda igual nos dois.
 
 ```bash
 cd backend
-npm test          # 101 testes
+npm test          # 117 testes
 ```
 
 Cobrem as regras críticas:
@@ -292,6 +293,10 @@ Cobrem as regras críticas:
 - **`tests/goals-routines.test.ts`** — progresso automático de metas (inclusive
   metas de emagrecimento), templates, rotina ativa única, compartilhamento por
   link e reordenação de exercícios
+- **`tests/datas.test.ts`** e **`tests/fuso-horario.test.ts`** — limites de dia,
+  semana e mês no fuso de quem treina (o servidor roda em UTC): treino da noite
+  no dia certo do calendário, virada de mês, sequência de dias, semana do
+  resumo, horário de verão e conta sem fuso informado
 - **`tests/username.test.ts`** — apelido sugerido a partir do nome, desempate por
   número quando repete, normalização de `@`/maiúsculas, formatos recusados,
   troca pelo perfil sem roubar o de outra pessoa, consulta de disponibilidade e

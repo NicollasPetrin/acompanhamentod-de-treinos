@@ -25,6 +25,8 @@ export interface Usuario {
   reminderTime: string | null;
   /** Mostrar treinos concluídos no mural dos grupos. */
   shareWorkouts: boolean;
+  /** Fuso do aparelho, para o servidor saber onde começa e termina o seu dia. */
+  timeZone: string | null;
   createdAt: string;
 }
 

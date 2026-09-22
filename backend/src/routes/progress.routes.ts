@@ -5,21 +5,12 @@ import { requireAuth, userId } from '../middleware/auth';
 import { getQuery, validate } from '../middleware/validate';
 import { arredondar, calcularStreakDias } from '../utils/calculations';
 import { CATALOGO_CONQUISTAS } from '../services/achievements';
+import {
+  chaveDoDia, chaveDoMes, fusoDoUsuario, inicioDaSemana, inicioDoMes, somarDias, somarMeses,
+} from '../lib/datas';
 
 export const progressRouter = Router();
 progressRouter.use(requireAuth);
-
-/** Segunda-feira da semana de uma data (início da semana no Brasil). */
-function inicioDaSemana(data: Date) {
-  const d = new Date(data);
-  const diaSemana = (d.getDay() + 6) % 7;
-  d.setDate(d.getDate() - diaSemana);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-const chaveDia = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 /**
  * GET /api/progresso/resumo
@@ -29,7 +20,8 @@ const chaveDia = (d: Date) =>
 progressRouter.get('/resumo', async (req, res, next) => {
   try {
     const uid = userId(req);
-    const inicioSemana = inicioDaSemana(new Date());
+    const fuso = await fusoDoUsuario(uid);
+    const inicioSemana = inicioDaSemana(new Date(), fuso);
 
     const [treinos, rotinaAtiva, emAndamento, usuario] = await Promise.all([
       prisma.workout.findMany({
@@ -68,7 +60,7 @@ progressRouter.get('/resumo', async (req, res, next) => {
 
     res.json({
       usuario: { nome: usuario?.name ?? '' },
-      streak: calcularStreakDias(treinos.map((t) => t.startedAt)),
+      streak: calcularStreakDias(treinos.map((t) => t.startedAt), new Date(), fuso),
       totalTreinos: treinos.length,
       treinoEmAndamento: emAndamento,
       semana: {
@@ -105,8 +97,8 @@ progressRouter.get(
   async (req, res, next) => {
     try {
       const { semanas } = getQuery<{ semanas: number }>(req);
-      const inicio = inicioDaSemana(new Date());
-      inicio.setDate(inicio.getDate() - (semanas - 1) * 7);
+      const fuso = await fusoDoUsuario(userId(req));
+      const inicio = somarDias(inicioDaSemana(new Date(), fuso), -(semanas - 1) * 7, fuso);
 
       const treinos = await prisma.workout.findMany({
         where: { userId: userId(req), status: 'concluido', startedAt: { gte: inicio } },
@@ -115,12 +107,11 @@ progressRouter.get(
 
       const buckets = new Map<string, { semana: string; volume: number; treinos: number; series: number }>();
       for (let i = 0; i < semanas; i++) {
-        const d = new Date(inicio);
-        d.setDate(inicio.getDate() + i * 7);
-        buckets.set(chaveDia(d), { semana: chaveDia(d), volume: 0, treinos: 0, series: 0 });
+        const chave = chaveDoDia(somarDias(inicio, i * 7, fuso), fuso);
+        buckets.set(chave, { semana: chave, volume: 0, treinos: 0, series: 0 });
       }
       for (const t of treinos) {
-        const chave = chaveDia(inicioDaSemana(t.startedAt));
+        const chave = chaveDoDia(inicioDaSemana(t.startedAt, fuso), fuso);
         const bucket = buckets.get(chave);
         if (!bucket) continue;
         bucket.volume = arredondar(bucket.volume + (t.totalVolume ?? 0));
@@ -191,9 +182,8 @@ progressRouter.get(
   async (req, res, next) => {
     try {
       const { meses } = getQuery<{ meses: number }>(req);
-      const inicio = new Date();
-      inicio.setMonth(inicio.getMonth() - (meses - 1), 1);
-      inicio.setHours(0, 0, 0, 0);
+      const fuso = await fusoDoUsuario(userId(req));
+      const inicio = somarMeses(new Date(), -(meses - 1), fuso);
 
       const treinos = await prisma.workout.findMany({
         where: { userId: userId(req), status: 'concluido', startedAt: { gte: inicio } },
@@ -202,13 +192,11 @@ progressRouter.get(
 
       const buckets = new Map<string, { mes: string; treinos: number; minutos: number; volume: number }>();
       for (let i = 0; i < meses; i++) {
-        const d = new Date(inicio);
-        d.setMonth(inicio.getMonth() + i);
-        const chave = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const chave = chaveDoMes(somarMeses(inicio, i, fuso), fuso);
         buckets.set(chave, { mes: chave, treinos: 0, minutos: 0, volume: 0 });
       }
       for (const t of treinos) {
-        const chave = `${t.startedAt.getFullYear()}-${String(t.startedAt.getMonth() + 1).padStart(2, '0')}`;
+        const chave = chaveDoMes(t.startedAt, fuso);
         const bucket = buckets.get(chave);
         if (!bucket) continue;
         bucket.treinos += 1;
@@ -232,9 +220,10 @@ progressRouter.get(
 progressRouter.get('/comparativo', async (req, res, next) => {
   try {
     const uid = userId(req);
+    const fuso = await fusoDoUsuario(uid);
     const agora = new Date();
-    const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
-    const inicioMesPassado = new Date(agora.getFullYear(), agora.getMonth() - 1, 1);
+    const inicioMes = inicioDoMes(agora, fuso);
+    const inicioMesPassado = somarMeses(agora, -1, fuso);
 
     const [atual, anterior] = await Promise.all([
       prisma.workout.findMany({

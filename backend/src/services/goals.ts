@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma';
 import { estimar1RM, progressoMeta } from '../utils/calculations';
+import { fusoDoUsuario, inicioDaSemana } from '../lib/datas';
 
 export interface MetaComProgresso {
   id: string;
@@ -66,12 +67,8 @@ async function valorAtual(userId: string, tipo: string, exerciseId: string | nul
       });
     }
     case 'volume': {
-      // Volume total da semana corrente (segunda a domingo)
-      const agora = new Date();
-      const diaSemana = (agora.getDay() + 6) % 7; // segunda = 0
-      const inicio = new Date(agora);
-      inicio.setDate(agora.getDate() - diaSemana);
-      inicio.setHours(0, 0, 0, 0);
+      // Volume total da semana corrente (segunda a domingo, no fuso da pessoa)
+      const inicio = inicioDaSemana(new Date(), await fusoDoUsuario(userId));
       const r = await prisma.workout.aggregate({
         where: { userId, status: 'concluido', startedAt: { gte: inicio } },
         _sum: { totalVolume: true },

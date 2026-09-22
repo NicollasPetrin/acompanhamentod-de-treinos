@@ -7,6 +7,9 @@ export default defineConfig({
     // SQLite não gosta de escrita concorrente — os arquivos rodam em série
     fileParallelism: false,
     env: {
+      // Os testes rodam com o relógio em UTC, como o servidor de produção —
+      // é assim que erros de fuso aparecem aqui em vez de na academia.
+      TZ: 'UTC',
       NODE_ENV: 'test',
       DATABASE_URL: 'file:./test.db',
       JWT_ACCESS_SECRET: 'segredo-de-teste-acesso-1234567890',
