@@ -10,6 +10,7 @@
 import { prisma } from '../lib/prisma';
 import { forbidden, notFound } from '../lib/errors';
 import { arredondar } from '../utils/calculations';
+import { fusoDoUsuario, inicioDaSemana } from '../lib/datas';
 
 /** Dados de outra pessoa que podem ser mostrados para amigos e grupos. */
 export interface PessoaPublica {
@@ -239,13 +240,9 @@ export async function rankingDoGrupo(groupId: string, desde: Date): Promise<Linh
     .sort((a, b) => b.treinos - a.treinos || b.volume - a.volume || a.pessoa.name.localeCompare(b.pessoa.name, 'pt-BR'));
 }
 
-/** Segunda-feira da semana corrente — mesmo critério usado no resto do app. */
-export function inicioDaSemana(data = new Date()) {
-  const d = new Date(data);
-  const diaSemana = (d.getDay() + 6) % 7;
-  d.setDate(d.getDate() - diaSemana);
-  d.setHours(0, 0, 0, 0);
-  return d;
+/** Segunda-feira da semana corrente, no fuso de quem está olhando. */
+export async function inicioDaSemanaDoUsuario(uid: string, data = new Date()) {
+  return inicioDaSemana(data, await fusoDoUsuario(uid));
 }
 
 /** Grupos do usuário, com contagem de membros e o último treino do mural. */
@@ -263,7 +260,7 @@ export async function listarGrupos(uid: string) {
     orderBy: { joinedAt: 'desc' },
   });
 
-  const desde = inicioDaSemana();
+  const desde = await inicioDaSemanaDoUsuario(uid);
 
   return Promise.all(
     participacoes.map(async (p) => {

@@ -9,7 +9,7 @@ import {
   donoDoGrupo,
   gerarCodigoDeConvite,
   idsDeAmigos,
-  inicioDaSemana,
+  inicioDaSemanaDoUsuario,
   listarGrupos,
   membroDoGrupo,
   muralDoGrupo,
@@ -119,8 +119,9 @@ groupsRouter.get('/:id', async (req, res, next) => {
     });
     if (!grupo) throw notFound('Grupo não encontrado');
 
+    const inicioSemana = await inicioDaSemanaDoUsuario(uid);
     const [ranking, convidados] = await Promise.all([
-      membro.status === 'ativo' ? rankingDoGrupo(grupo.id, inicioDaSemana()) : [],
+      membro.status === 'ativo' ? rankingDoGrupo(grupo.id, inicioSemana) : [],
       prisma.groupMember.findMany({
         where: { groupId: grupo.id, status: 'convidado' },
         include: { user: { select: CAMPOS_PUBLICOS } },
@@ -139,7 +140,7 @@ groupsRouter.get('/:id', async (req, res, next) => {
       inviteCode: membro.role === 'dono' && membro.status === 'ativo' ? grupo.inviteCode : null,
       ranking,
       convidados: convidados.map((c) => c.user),
-      semanaComecaEm: inicioDaSemana(),
+      semanaComecaEm: inicioSemana,
     });
   } catch (err) {
     next(err);

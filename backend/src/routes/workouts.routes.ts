@@ -8,6 +8,7 @@ import { badRequest, conflict, notFound } from '../lib/errors';
 import { recalcularRecordes, verificarRecordeProvisorio } from '../services/records';
 import { verificarConquistas } from '../services/achievements';
 import { arredondar, resumirSeries, volumeTotal } from '../utils/calculations';
+import { chaveDoDia, fusoDoUsuario, inicioDoDiaLocal } from '../lib/datas';
 
 export const workoutsRouter = Router();
 workoutsRouter.use(requireAuth);
@@ -208,8 +209,11 @@ workoutsRouter.get(
     try {
       const { mes } = getQuery<{ mes: string }>(req);
       const [ano, m] = mes.split('-').map(Number);
-      const inicio = new Date(ano, m - 1, 1);
-      const fim = new Date(ano, m, 0, 23, 59, 59, 999);
+      // Os limites do mês são no fuso de quem treina: um treino das 22h do
+      // dia 31 pertence a este mês, não ao seguinte.
+      const fuso = await fusoDoUsuario(userId(req));
+      const inicio = inicioDoDiaLocal(ano, m, 1, fuso);
+      const fim = new Date(inicioDoDiaLocal(m === 12 ? ano + 1 : ano, m === 12 ? 1 : m + 1, 1, fuso).getTime() - 1);
 
       const treinos = await prisma.workout.findMany({
         where: { userId: userId(req), status: 'concluido', startedAt: { gte: inicio, lte: fim } },
@@ -219,9 +223,7 @@ workoutsRouter.get(
 
       const dias: Record<string, Array<(typeof treinos)[number]>> = {};
       for (const t of treinos) {
-        const chave = `${t.startedAt.getFullYear()}-${String(t.startedAt.getMonth() + 1).padStart(2, '0')}-${String(
-          t.startedAt.getDate(),
-        ).padStart(2, '0')}`;
+        const chave = chaveDoDia(t.startedAt, fuso);
         (dias[chave] ??= []).push(t);
       }
 

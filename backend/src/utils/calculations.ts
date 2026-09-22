@@ -3,6 +3,8 @@
  * Funções puras — cobertas por testes automatizados em `tests/`.
  */
 
+import { chaveDoDia, FUSO_PADRAO, inicioDoDia, somarDias } from '../lib/datas';
+
 export type PrType = 'carga' | 'reps' | 'volume' | '1rm';
 export type SetType = 'normal' | 'aquecimento' | 'drop' | 'rest_pause' | 'falha';
 
@@ -199,17 +201,22 @@ export function calcularAnilhas(
   };
 }
 
-/** Sequência (streak) de dias/semanas — usada no dashboard. */
-export function calcularStreakDias(datasTreino: Date[], hoje = new Date()): number {
+/**
+ * Sequência (streak) de dias treinados.
+ *
+ * Os dias são contados no fuso de quem treina: em UTC, um treino das 21h no
+ * Brasil cairia no dia seguinte e quebraria a sequência sem motivo.
+ */
+export function calcularStreakDias(datasTreino: Date[], hoje = new Date(), fuso = FUSO_PADRAO): number {
   if (datasTreino.length === 0) return 0;
-  const dias = new Set(datasTreino.map((d) => d.toISOString().slice(0, 10)));
+  const dias = new Set(datasTreino.map((d) => chaveDoDia(d, fuso)));
   let streak = 0;
-  const cursor = new Date(hoje);
+  let cursor = inicioDoDia(hoje, fuso);
   // Se ainda não treinou hoje, a sequência pode continuar valendo até ontem.
-  if (!dias.has(cursor.toISOString().slice(0, 10))) cursor.setDate(cursor.getDate() - 1);
-  while (dias.has(cursor.toISOString().slice(0, 10))) {
+  if (!dias.has(chaveDoDia(cursor, fuso))) cursor = somarDias(cursor, -1, fuso);
+  while (dias.has(chaveDoDia(cursor, fuso))) {
     streak++;
-    cursor.setDate(cursor.getDate() - 1);
+    cursor = somarDias(cursor, -1, fuso);
   }
   return streak;
 }

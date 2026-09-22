@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { apiGet, apiPost, aoMudarSessao, lerSessao, listarContas, salvarSessao, trocarConta, ErroApi } from './api';
+import { apiGet, apiPatch, apiPost, aoMudarSessao, lerSessao, listarContas, salvarSessao, trocarConta, ErroApi } from './api';
 import { apagarRascunho, limparCacheDaApi, sincronizarPendentes } from './offline';
 import { aplicarTema, ehCorValida, temaSalvo, type CorDestaque } from './tema';
 import type { Sessao, Tema, Usuario } from './tipos';
@@ -29,6 +29,24 @@ const Contexto = createContext<ContextoAuth | null>(null);
 export function aplicarTemaNoDocumento(tema: Tema, cor?: string) {
   const escolhida: CorDestaque = ehCorValida(cor) ? cor : temaSalvo().cor;
   aplicarTema(tema, escolhida);
+}
+
+/**
+ * Conta ao servidor em que fuso o aparelho está.
+ *
+ * O servidor roda em UTC; sem isto, um treino das 21h no Brasil seria contado
+ * no dia seguinte no calendário, na sequência de dias e no resumo da semana.
+ * Só chama a API quando o fuso mudou (viagem, celular novo), e falhar aqui não
+ * pode atrapalhar nada — no pior caso vale o fuso padrão do app.
+ */
+async function avisarFuso(usuario: Usuario) {
+  try {
+    const doAparelho = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (!doAparelho || doAparelho === usuario.timeZone) return;
+    await apiPatch('/usuarios/eu/preferencias', { timeZone: doAparelho });
+  } catch {
+    /* sem rede ou fuso desconhecido: o servidor usa o padrão */
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -62,6 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const sessao = lerSessao();
         if (sessao) salvarSessao({ ...sessao, usuario: atual });
         void sincronizarPendentes(atual.id);
+        void avisarFuso(atual);
       } catch (erro) {
         // Offline: seguimos com os dados salvos localmente
         if (erro instanceof ErroApi && !erro.offline && erro.status === 401) {
@@ -88,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUsuario(sessao.usuario);
     aplicarTemaNoDocumento(sessao.usuario.theme, sessao.usuario.accentColor);
     void sincronizarPendentes(sessao.usuario.id);
+    void avisarFuso(sessao.usuario);
   }, [limparDadosDaSessaoAnterior]);
 
   const cadastrar = useCallback(async (nome: string, email: string, senha: string) => {
@@ -96,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     salvarSessao(sessao);
     setUsuario(sessao.usuario);
     aplicarTemaNoDocumento(sessao.usuario.theme, sessao.usuario.accentColor);
+    void avisarFuso(sessao.usuario);
   }, [limparDadosDaSessaoAnterior]);
 
   const sair = useCallback(async () => {

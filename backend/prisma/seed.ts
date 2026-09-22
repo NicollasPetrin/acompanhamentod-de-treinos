@@ -85,6 +85,7 @@ async function semearUsuarioDemo() {
       name: 'Alex Demonstração',
       email: EMAIL_DEMO,
       username: 'alexdemo',
+      timeZone: 'America/Sao_Paulo',
       passwordHash: await hashPassword(SENHA_DEMO),
       birthDate: new Date('1996-04-12'),
       sex: 'outro',

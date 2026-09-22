@@ -98,6 +98,13 @@ export const openapiDocument = {
           theme: { type: 'string', enum: ['dark', 'light'] },
           trainingDays: { type: 'array', items: { type: 'string' } },
           defaultRestSec: { type: 'integer' },
+          timeZone: {
+            type: 'string',
+            nullable: true,
+            example: 'America/Sao_Paulo',
+            description:
+              'Fuso do aparelho (IANA), enviado pelo app. Define onde começa e termina o dia da pessoa nas contagens por dia, semana e mês. Sem ele, vale America/Sao_Paulo.',
+          },
         },
       },
       Sessao: {

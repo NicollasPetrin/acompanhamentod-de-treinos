@@ -47,6 +47,9 @@ model User {
   defaultRestSec Int     @default(90)
   remindersOn    Boolean @default(false)
   reminderTime   String? // "18:30"
+  /// Fuso da pessoa (IANA, ex.: "America/Sao_Paulo"). O servidor roda em UTC,
+  /// então é por aqui que se sabe onde um dia começa e termina para ela.
+  timeZone       String?
   shareWorkouts  Boolean @default(true) // mostrar treinos concluídos nos grupos
 
   createdAt DateTime @default(now())

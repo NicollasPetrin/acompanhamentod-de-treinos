@@ -46,6 +46,8 @@ const preferenciasSchema = z.object({
   defaultRestSec: z.number().int().min(15).max(600).optional(),
   remindersOn: z.boolean().optional(),
   shareWorkouts: z.boolean().optional(),
+  /** Fuso do aparelho (IANA). Mandado pelo app, não escolhido em tela. */
+  timeZone: z.string().trim().max(60).optional(),
   reminderTime: z
     .string()
     .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use o formato HH:MM')
