@@ -30,6 +30,24 @@ const schema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   MAIL_FROM: z.string().default('Treinos <nao-responda@treinos.app>'),
+
+  // Notificações (Web Push). As chaves VAPID são opcionais: sem elas o app gera
+  // um par na primeira vez e guarda no banco. Defina aqui só para fixar as suas.
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  /** Contato exigido pelos serviços de push (mailto: ou https:). */
+  VAPID_SUBJECT: z.string().optional(),
+
+  // Agendamento das notificações com hora marcada (fim do descanso com o app
+  // fechado). Em servidor que fica ligado (sua máquina, Render) um timer basta.
+  // Em hospedagem sem servidor (Vercel), o processo dorme entre requisições —
+  // aí quem "acorda" a API na hora certa é o QStash, da Upstash (grátis).
+  QSTASH_URL: z.string().default('https://qstash.upstash.io'),
+  QSTASH_TOKEN: z.string().optional(),
+  QSTASH_CURRENT_SIGNING_KEY: z.string().optional(),
+  QSTASH_NEXT_SIGNING_KEY: z.string().optional(),
+  /** Endereço público da API, para o QStash chamar de volta. */
+  API_PUBLIC_URL: z.string().optional(),
 });
 
 /**
@@ -43,6 +61,9 @@ if (urlPublica) {
   ambiente.APP_URL ??= urlPublica;
   ambiente.CORS_ORIGINS ??= urlPublica;
 }
+// Na Vercel, o domínio de produção vem pronto — é para lá que o QStash liga
+const dominioVercel = process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
+ambiente.API_PUBLIC_URL ??= urlPublica ?? (dominioVercel ? `https://${dominioVercel}` : undefined);
 
 const parsed = schema.safeParse(ambiente);
 

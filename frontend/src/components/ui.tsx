@@ -295,7 +295,8 @@ export function Modal({ aberto, aoFechar, titulo, children, rodape, largo }: Mod
         aria-label={titulo}
         className={clsx(
           'relative w-full bg-superficie border border-borda shadow-2xl animate-sobe-suave',
-          'rounded-t-2xl sm:rounded-2xl max-h-[92vh] flex flex-col',
+          'rounded-t-2xl sm:rounded-2xl flex flex-col',
+          'max-h-[calc(100vh-var(--seguro-topo)-1rem)] pb-[var(--seguro-base)] sm:max-h-[92vh] sm:pb-0',
           largo ? 'sm:max-w-2xl' : 'sm:max-w-md',
         )}
       >

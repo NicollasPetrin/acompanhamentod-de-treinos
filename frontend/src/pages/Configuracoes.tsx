@@ -14,6 +14,7 @@ import { notificacoesSuportadas, pedirPermissaoNotificacoes } from '../lib/lembr
 import type { Usuario } from '../lib/tipos';
 import { AreaTexto, Botao, Campo, Cartao, Modal, Selecao, TituloSecao } from '../components/ui';
 import { useAvisos } from '../components/Notificacoes';
+import AjustesNotificacoes from '../components/AjustesNotificacoes';
 
 export default function Configuracoes() {
   const { usuario, contas, trocarPara, atualizarUsuario, aplicarTema, sair } = useAuth();
@@ -463,6 +464,8 @@ export default function Configuracoes() {
           </div>
         </Cartao>
       </section>
+
+      <AjustesNotificacoes userId={usuario.id} />
 
       {/* Dados ------------------------------------------------------------- */}
       <section>

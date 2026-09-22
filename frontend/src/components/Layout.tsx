@@ -154,7 +154,7 @@ export default function Layout() {
       <div className="flex min-h-screen flex-1 flex-col">
         <FaixaOffline userId={usuario?.id} />
 
-        <main className={clsx('mx-auto w-full max-w-3xl flex-1 px-4 py-4', !emTreino && 'pb-28 lg:pb-8')}>
+        <main className={clsx('mx-auto w-full max-w-3xl flex-1 px-4 py-4', emTreino ? 'pb-[calc(1rem+var(--seguro-base))]' : 'pb-28 lg:pb-8')}>
           <Outlet />
         </main>
 
@@ -162,7 +162,7 @@ export default function Layout() {
         {!emTreino && (
           <nav
             className="fixed inset-x-0 bottom-0 z-40 border-t border-borda bg-superficie/95 backdrop-blur lg:hidden"
-            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+            style={{ paddingBottom: 'var(--seguro-base)' }}
             aria-label="Navegação principal"
           >
             <div className="mx-auto flex max-w-lg items-center justify-around px-2">
